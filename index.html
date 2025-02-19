@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unir y Extraer Páginas de PDF</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+        .container {
+            width: 90%;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #444;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .input-group input[type="file"], .input-group input[type="text"], .input-group input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .input-group input[type="file"] {
+            padding: 5px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .pdf-list {
+            margin-top: 20px;
+        }
+        .pdf-list ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        .pdf-list li {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .pdf-list li button {
+            background-color: #dc3545;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        .pdf-list li button:hover {
+            background-color: #c82333;
+        }
+        .download-link {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: #007bff;
+            text-decoration: none;
+        }
+        .download-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Unir y Extraer Páginas de PDF</h1>
+        
+        <div class="input-group">
+            <label for="pdfFiles">Seleccionar PDFs para unir:</label>
+            <input type="file" id="pdfFiles" accept="application/pdf" multiple>
+        </div>
+
+        <div class="pdf-list">
+            <ul id="pdfList"></ul>
+        </div>
+
+        <div class="input-group">
+            <label for="outputName">Nombre del PDF resultante:</label>
+            <input type="text" id="outputName" placeholder="nombre_archivo.pdf">
+        </div>
+
+        <button id="mergeBtn" class="btn" disabled>Unir PDFs</button>
+        <a id="downloadLink" class="download-link" style="display: none;">Descargar PDF Unido</a>
+
+        <hr>
+
+        <div class="input-group">
+            <label for="pdfFile">Seleccionar PDF para extraer páginas:</label>
+            <input type="file" id="pdfFile" accept="application/pdf">
+        </div>
+
+        <div class="input-group">
+            <label for="startPage">Página de inicio:</label>
+            <input type="number" id="startPage" min="1">
+        </div>
+
+        <div class="input-group">
+            <label for="endPage">Página final:</label>
+            <input type="number" id="endPage" min="1">
+        </div>
+
+        <button id="extractBtn" class="btn" disabled>Extraer Páginas</button>
+        <a id="extractDownloadLink" class="download-link" style="display: none;">Descargar PDF Extraído</a>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <script src="https://mozilla.github.io/pdf.js/build/pdf.js"></script>
+    <script>
+        const pdfFilesInput = document.getElementById("pdfFiles");
+        const pdfList = document.getElementById("pdfList");
+        const mergeBtn = document.getElementById("mergeBtn");
+        const downloadLink = document.getElementById("downloadLink");
+        const outputNameInput = document.getElementById("outputName");
+
+        const pdfFileInput = document.getElementById("pdfFile");
+        const extractBtn = document.getElementById("extractBtn");
+        const extractDownloadLink = document.getElementById("extractDownloadLink");
+        const startPageInput = document.getElementById("startPage");
+        const endPageInput = document.getElementById("endPage");
+
+        let pdfFiles = [];
+
+        pdfFilesInput.addEventListener("change", () => {
+            pdfFiles = Array.from(pdfFilesInput.files);
+            renderPdfList();
+            mergeBtn.disabled = pdfFiles.length === 0;
+        });
+
+        function renderPdfList() {
+            pdfList.innerHTML = '';
+            pdfFiles.forEach((file, index) => {
+                const li = document.createElement("li");
+                li.textContent = file.name;
+                const removeBtn = document.createElement("button");
+                removeBtn.textContent = "Eliminar";
+                removeBtn.addEventListener("click", () => {
+                    pdfFiles.splice(index, 1);
+                    renderPdfList();
+                    mergeBtn.disabled = pdfFiles.length === 0;
+                });
+                li.appendChild(removeBtn);
+                pdfList.appendChild(li);
+            });
+        }
+
+        mergeBtn.addEventListener("click", async () => {
+            const outputName = outputNameInput.value || "pdf_unido.pdf";
+            const newPdfDoc = await PDFLib.PDFDocument.create();
+
+            for (const file of pdfFiles) {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+                const copiedPages = await newPdfDoc.copyPages(pdfDoc, pdfDoc.getPageIndices());
+                copiedPages.forEach(page => newPdfDoc.addPage(page));
+            }
+
+            const pdfBytes = await newPdfDoc.save();
+            const blob = new Blob([pdfBytes], { type: "application/pdf" });
+            downloadLink.href = URL.createObjectURL(blob);
+            downloadLink.download = outputName;
+            downloadLink.style.display = "block";
+            downloadLink.textContent = "Descargar PDF Unido";
+        });
+
+        pdfFileInput.addEventListener("change", () => {
+            extractBtn.disabled = !pdfFileInput.files.length;
+        });
+
+        extractBtn.addEventListener("click", async () => {
+            const startPage = parseInt(startPageInput.value);
+            const endPage = parseInt(endPageInput.value);
+            const outputName = outputNameInput.value || "paginas_extraidas.pdf";
+
+            if (pdfFileInput.files.length === 0) {
+                alert("Por favor, selecciona un archivo PDF.");
+                return;
+            }
+            if (!startPage || !endPage || startPage > endPage) {
+                alert("Por favor, introduce un rango válido de páginas.");
+                return;
+            }
+
+            const file = pdfFileInput.files[0];
+            const arrayBuffer = await file.arrayBuffer();
+            const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+            const newPdfDoc = await PDFLib.PDFDocument.create();
+
+            for (let i = startPage; i <= endPage; i++) {
+                if (i > pdfDoc.getPageCount()) {
+                    alert("El PDF no tiene tantas páginas.");
+                    return;
+                }
+                const [copiedPage] = await newPdfDoc.copyPages(pdfDoc, [i - 1]);
+                newPdfDoc.addPage(copiedPage);
+            }
+
+            const pdfBytes = await newPdfDoc.save();
+            const blob = new Blob([pdfBytes], { type: "application/pdf" });
+            extractDownloadLink.href = URL.createObjectURL(blob);
+            extractDownloadLink.download = outputName;
+            extractDownloadLink.style.display = "block";
+            extractDownloadLink.textContent = "Descargar PDF Extraído";
+        });
+    </script>
+</body>
+</html>
