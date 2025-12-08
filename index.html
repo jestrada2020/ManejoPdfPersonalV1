@@ -1,245 +1,2829 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Unir y Extraer Páginas de PDF</title>
+    <title>Herramientas PDF Avanzadas</title>
     <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg-body: #f3f4f6;
+            --bg-card: #ffffff;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --border: #e5e7eb;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --radius: 0.5rem;
+        }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
             margin: 0;
-            padding: 0;
-            background-color: #f4f4f9;
-            color: #333;
-        }
-        .container {
-            width: 90%;
-            max-width: 800px;
-            margin: 40px auto;
             padding: 20px;
-            background: #fff;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            line-height: 1.5;
         }
-        h1 {
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            min-height: 80vh;
+        }
+
+        header {
+            background-color: #fff;
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
             text-align: center;
-            color: #444;
         }
-        .input-group {
+
+        h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f9fafb;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            transition: all 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+
+        .tab-btn:hover {
+            color: var(--primary);
+            background-color: #f3f4f6;
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            background-color: #fff;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+            flex: 1;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Form Elements */
+        .form-group {
             margin-bottom: 20px;
         }
-        .input-group label {
+
+        label {
             display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-main);
         }
-        .input-group input[type="file"], .input-group input[type="text"], .input-group input[type="number"] {
+
+        input[type="text"],
+        input[type="number"],
+        input[type="password"],
+        input[type="file"] {
             width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 16px;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 0.95rem;
+            transition: border-color 0.2s;
+            box-sizing: border-box;
         }
-        .input-group input[type="file"] {
-            padding: 5px;
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
         }
+
         .btn {
-            display: inline-block;
-            padding: 10px 20px;
-            background-color: #007bff;
-            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 24px;
+            background-color: var(--primary);
+            color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: var(--radius);
+            font-size: 1rem;
+            font-weight: 500;
             cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.3s ease;
+            transition: background-color 0.2s;
+            width: 100%;
         }
-        .btn:hover {
-            background-color: #0056b3;
+
+        .btn:hover:not(:disabled) {
+            background-color: var(--primary-hover);
         }
+
         .btn:disabled {
-            background-color: #ccc;
+            opacity: 0.6;
             cursor: not-allowed;
         }
-        .pdf-list {
-            margin-top: 20px;
-        }
-        .pdf-list ul {
-            list-style-type: none;
+
+        /* Specific Lists */
+        .file-list {
+            list-style: none;
             padding: 0;
+            margin: 0 0 20px 0;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
         }
-        .pdf-list li {
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            margin-bottom: 10px;
+
+        .file-list li {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            gap: 10px;
+            background: #fff;
         }
-        .pdf-list li button {
-            background-color: #dc3545;
-            color: #fff;
+
+        .file-list li:last-child {
+            border-bottom: none;
+        }
+
+        .file-info {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .file-name {
+            font-weight: 500;
+        }
+
+        .file-password {
+            font-size: 0.85rem;
+        }
+
+        .file-password input {
+            padding: 4px 8px;
+            width: 150px;
+            font-size: 0.8rem;
+        }
+
+        .btn-remove {
+            background: #fee2e2;
+            color: #ef4444;
             border: none;
+            padding: 6px 12px;
             border-radius: 4px;
-            padding: 5px 10px;
             cursor: pointer;
+            font-size: 0.85rem;
         }
-        .pdf-list li button:hover {
-            background-color: #c82333;
+
+        .btn-remove:hover {
+            background: #fecaca;
         }
-        .download-link {
-            display: block;
-            text-align: center;
+
+        .result-area {
             margin-top: 20px;
-            color: #007bff;
+            padding: 15px;
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            border-radius: var(--radius);
+            color: #065f46;
+            text-align: center;
+            display: none;
+        }
+
+        .result-area a {
+            color: #059669;
+            font-weight: 600;
             text-decoration: none;
         }
-        .download-link:hover {
+
+        .result-area a:hover {
             text-decoration: underline;
+        }
+
+        .row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .col {
+            flex: 1;
+        }
+
+        .logs {
+            margin-top: 10px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            max-height: 100px;
+            overflow-y: auto;
+            border-top: 1px solid var(--border);
+            padding-top: 10px;
+        }
+
+        /* Annotation Toolbar & Viewer */
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            padding: 10px;
+            background: #f3f4f6;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .toolbar-group {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+            border-right: 1px solid #d1d5db;
+            padding-right: 10px;
+        }
+
+        .toolbar-group:last-child {
+            border-right: none;
+        }
+
+        .tool-btn {
+            padding: 6px 12px;
+            border: 1px solid var(--border);
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .tool-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .color-picker {
+            width: 30px;
+            height: 30px;
+            padding: 0;
+            border: none;
+            background: none;
+            cursor: pointer;
+        }
+
+        #pdfViewerContainer {
+            width: 100%;
+            height: 600px;
+            overflow: auto;
+            border: 1px solid var(--border);
+            background: #525659;
+            /* Darker bg for contrast */
+            position: relative;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        #pageContainer {
+            position: relative;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+
+        #pdfCanvas {
+            display: block;
+            background: white;
+        }
+
+        #annotationLayer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            cursor: crosshair;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 95%;
+            height: 90%;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .close-modal {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            cursor: pointer;
+            z-index: 1001;
+        }
+
+        .close-modal:hover,
+        .close-modal:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        /* Adjust viewer container for modal */
+        #pdfViewerContainer {
+            height: auto;
+            flex-grow: 1;
+            background: #525659;
+            margin-top: 10px;
         }
     </style>
 </head>
+
 <body>
+
     <div class="container">
-        <h1>Unir y Extraer Páginas de PDF</h1>
-        
-        <div class="input-group">
-            <label for="pdfFiles">Seleccionar PDFs para unir:</label>
-            <input type="file" id="pdfFiles" accept="application/pdf" multiple>
+        <header>
+            <h1>Herramientas PDF Profesional</h1>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-btn" onclick="switchTab('merge')">Unir PDFs</button>
+            <button class="tab-btn" onclick="switchTab('extract')">Extraer por Rango</button>
+            <button class="tab-btn" onclick="switchTab('search')">Extraer por Búsqueda</button>
+            <button class="tab-btn" onclick="switchTab('chapters')">Extracción de Capítulos</button>
+            <button class="tab-btn" onclick="switchTab('unlock')">Desbloquear PDF</button>
+            <button class="tab-btn" onclick="switchTab('annotate')">Anotar / Revisar</button>
         </div>
 
-        <div class="pdf-list">
-            <ul id="pdfList"></ul>
+        <!-- MERGE TAB -->
+        <div id="merge" class="tab-content active">
+            <div class="form-group">
+                <label>1. Seleccionar Archivos (Ordenados)</label>
+                <input type="file" id="mergeFilesInput" accept="application/pdf" multiple style="margin-bottom: 10px;">
+                <ul id="mergeList" class="file-list"></ul>
+                <p class="logs" id="mergeLogs">Añade archivos para comenzar.</p>
+            </div>
+
+            <div class="form-group">
+                <label>2. Nombre del archivo final</label>
+                <input type="text" id="mergeOutputName" placeholder="pdf_unido.pdf" value="pdf_unido.pdf">
+            </div>
+
+            <button id="mergeBtn" class="btn" disabled onclick="mergePDFs()">Unir PDFs Seleccionados</button>
+
+            <div id="mergeResult" class="result-area">
+                ¡Éxito! <a id="mergeDownload" href="#" download>Descargar PDF Unido</a>
+            </div>
         </div>
 
-        <div class="input-group">
-            <label for="outputName">Nombre del PDF resultante:</label>
-            <input type="text" id="outputName" placeholder="nombre_archivo.pdf">
+        <!-- EXTRACT TAB -->
+        <div id="extract" class="tab-content">
+            <div class="form-group"
+                style="text-align: center; padding: 20px; background: white; border: 2px dashed var(--border); border-radius: 8px;">
+                <label style="font-size: 1.1rem; margin-bottom: 10px; display:block;">1. Seleccionar Archivo PDF</label>
+
+                <input type="file" id="extractFileInput" accept="application/pdf" style="display: none;"
+                    onchange="handleSingleFileSelect('extract')">
+                <button class="btn" style="max-width: 250px; margin: 0 auto;"
+                    onclick="document.getElementById('extractFileInput').click()">
+                    📂 Cargar PDF (Extraer)
+                </button>
+
+                <div id="extractFileInfo"
+                    style="display:none; margin-top: 15px; padding: 10px; border: 1px solid var(--border); border-radius: 4px; text-align: left;">
+                    <span id="extractFileName" style="font-weight:bold;"></span>
+                    <div style="margin-top: 8px;">
+                        <input type="password" id="extractFilePass" placeholder="Contraseña (si tiene)">
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col">
+                    <div class="form-group">
+                        <label>Página Inicio</label>
+                        <input type="number" id="startPage" min="1" value="1">
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="form-group">
+                        <label>Página Final</label>
+                        <input type="number" id="endPage" min="1" value="1">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label style="display:flex; align-items:center; cursor:pointer;">
+                    <input type="checkbox" id="rasterizeMode" style="width:auto; margin-right:10px;">
+                    <span>Modo Compatibilidad (Imprimir como Imagen)</span>
+                </label>
+                <small style="color: var(--text-muted); display: block; margin-top: 4px;">
+                    Úselo si recibe errores de contraseña o si el archivo está protegido. Esto convertirá las páginas en
+                    imágenes.
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label>Nombre del archivo final</label>
+                <input type="text" id="extractOutputName" placeholder="paginas_extraidas.pdf"
+                    value="paginas_extraidas.pdf">
+            </div>
+
+            <button id="extractBtn" class="btn" disabled onclick="extractPages()">Extraer Páginas</button>
+
+            <div id="extractResult" class="result-area">
+                ¡Éxito! <a id="extractDownload" href="#" download>Descargar PDF Extraído</a>
+            </div>
         </div>
 
-        <button id="mergeBtn" class="btn" disabled>Unir PDFs</button>
-        <a id="downloadLink" class="download-link" style="display: none;">Descargar PDF Unido</a>
+        <!-- SEARCH TAB -->
+        <div id="search" class="tab-content">
+            <div class="form-group"
+                style="text-align: center; padding: 20px; background: white; border: 2px dashed var(--border); border-radius: 8px;">
+                <label style="font-size: 1.1rem; margin-bottom: 10px; display:block;">1. Seleccionar Archivo PDF</label>
 
-        <hr>
+                <input type="file" id="searchFileInput" accept="application/pdf" style="display: none;"
+                    onchange="handleSingleFileSelect('search')">
+                <button class="btn" style="max-width: 250px; margin: 0 auto;"
+                    onclick="document.getElementById('searchFileInput').click()">
+                    📂 Cargar PDF (Búsqueda)
+                </button>
 
-        <div class="input-group">
-            <label for="pdfFile">Seleccionar PDF para extraer páginas:</label>
-            <input type="file" id="pdfFile" accept="application/pdf">
+                <div id="searchFileInfo"
+                    style="display:none; margin-top: 15px; padding: 10px; border: 1px solid var(--border); border-radius: 4px; text-align: left;">
+                    <span id="searchFileName" style="font-weight:bold;"></span>
+                    <div style="margin-top: 8px;">
+                        <input type="password" id="searchFilePass" placeholder="Contraseña (si tiene)">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>2. Texto a buscar</label>
+                <input type="text" id="searchQuery" placeholder="Ej: Capítulo 1, Referencia #123...">
+                <small style="color: var(--text-muted); display: block; margin-top: 4px;">
+                    La búsqueda es inteligente: no distingue mayúsculas/minúsculas ni acentos.
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label style="display:flex; align-items:center; cursor:pointer;">
+                    <input type="checkbox" id="searchRasterMode" style="width:auto; margin-right:10px;">
+                    <span>Modo Compatibilidad (Imprimir como Imagen)</span>
+                </label>
+                <small style="color: var(--text-muted); display: block; margin-top: 4px;">
+                    Úselo si recibe errores o si el archivo está protegido. Esto convertirá las páginas en imágenes.
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label>Nombre del archivo final</label>
+                <input type="text" id="searchOutputName" placeholder="busqueda_resultado.pdf"
+                    value="busqueda_resultado.pdf">
+            </div>
+
+            <button id="searchBtn" class="btn" disabled onclick="searchAndExtract()">Buscar Páginas</button>
+            <p class="logs" id="searchLogs"></p>
+
+            <!-- Preview de páginas encontradas -->
+            <div id="searchPreview"
+                style="display:none; margin-top: 20px; padding: 15px; background: #f9fafb; border: 1px solid var(--border); border-radius: var(--radius);">
+                <h3 style="margin-top: 0; font-size: 1.1rem; color: var(--text-main);">Páginas encontradas:</h3>
+                <div id="searchPagesList" style="margin-bottom: 15px; max-height: 200px; overflow-y: auto;"></div>
+                <button id="extractFoundBtn" class="btn" onclick="extractFoundPages()" style="margin-right: 10px;">
+                    Extraer Páginas Seleccionadas
+                </button>
+                <button class="btn" onclick="cancelSearch()" style="background: #6b7280;">
+                    Cancelar
+                </button>
+            </div>
+
+            <div id="searchResult" class="result-area">
+                ¡Éxito! <a id="searchDownload" href="#" download>Descargar PDF Resultante</a>
+            </div>
         </div>
 
-        <div class="input-group">
-            <label for="startPage">Página de inicio:</label>
-            <input type="number" id="startPage" min="1">
+        <!-- CHAPTERS TAB -->
+        <div id="chapters" class="tab-content">
+            <div class="form-group"
+                style="text-align: center; padding: 20px; background: white; border: 2px dashed var(--border); border-radius: 8px;">
+                <label style="font-size: 1.1rem; margin-bottom: 10px; display:block;">1. Seleccionar Archivo PDF</label>
+
+                <input type="file" id="chaptersFileInput" accept="application/pdf" style="display: none;"
+                    onchange="handleSingleFileSelect('chapters')">
+                <button class="btn" style="max-width: 250px; margin: 0 auto;"
+                    onclick="document.getElementById('chaptersFileInput').click()">
+                    📂 Cargar PDF (Capítulos)
+                </button>
+
+                <div id="chaptersFileInfo"
+                    style="display:none; margin-top: 15px; padding: 10px; border: 1px solid var(--border); border-radius: 4px; text-align: left;">
+                    <span id="chaptersFileName" style="font-weight:bold;"></span>
+                    <div style="margin-top: 8px;">
+                        <input type="password" id="chaptersFilePass" placeholder="Contraseña (si tiene)">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>2. Patrón de detección de capítulos</label>
+                <input type="text" id="chapterPattern" placeholder='Ej: Capítulo, Chapter, CAPÍTULO'
+                    value="Capítulo,Chapter,CAPÍTULO">
+                <small style="color: var(--text-muted); display: block; margin-top: 4px;">
+                    Ingrese las palabras clave separadas por comas. El sistema detectará capítulos automáticamente.
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label style="display:flex; align-items:center; cursor:pointer;">
+                    <input type="checkbox" id="chapterUseNumbers" checked style="width:auto; margin-right:10px;">
+                    <span>Detectar solo capítulos numerados (Capítulo 1, Capítulo 2, etc.)</span>
+                </label>
+                <small style="color: var(--text-muted); display: block; margin-top: 4px;">
+                    Recomendado para evitar falsos positivos. Desmarque para detectar todos los capítulos.
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label style="display:flex; align-items:center; cursor:pointer;">
+                    <input type="checkbox" id="chapterRasterMode" style="width:auto; margin-right:10px;">
+                    <span>Modo Compatibilidad (Imprimir como Imagen)</span>
+                </label>
+                <small style="color: var(--text-muted); display: block; margin-top: 4px;">
+                    Úselo si recibe errores o si el archivo está protegido.
+                </small>
+            </div>
+
+            <button id="chaptersBtn" class="btn" disabled onclick="detectChapters()">Detectar Capítulos</button>
+            <p class="logs" id="chaptersLogs"></p>
+
+            <!-- Preview de capítulos detectados -->
+            <div id="chaptersPreview"
+                style="display:none; margin-top: 20px; padding: 15px; background: #f9fafb; border: 1px solid var(--border); border-radius: var(--radius);">
+                <h3 style="margin-top: 0; font-size: 1.1rem; color: var(--text-main);">Capítulos detectados:</h3>
+                <div id="chaptersList" style="margin-bottom: 15px; max-height: 300px; overflow-y: auto;"></div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button id="extractAllChaptersBtn" class="btn" onclick="extractAllChapters()">
+                        📚 Extraer Todos los Capítulos
+                    </button>
+                    <button class="btn" onclick="cancelChapters()" style="background: #6b7280;">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+
+            <div id="chaptersResult" class="result-area">
+                <p id="chaptersResultText">¡Éxito! Se han generado los capítulos.</p>
+                <div id="chaptersDownloadLinks" style="margin-top: 10px;"></div>
+            </div>
         </div>
 
-        <div class="input-group">
-            <label for="endPage">Página final:</label>
-            <input type="number" id="endPage" min="1">
+        <!-- UNLOCK TAB -->
+        <div id="unlock" class="tab-content">
+            <div class="form-group"
+                style="text-align: center; padding: 20px; background: white; border: 2px dashed var(--border); border-radius: 8px;">
+                <label style="font-size: 1.1rem; margin-bottom: 10px; display:block;">1. Seleccionar Archivo
+                    Protegido</label>
+
+                <input type="file" id="unlockFileInput" accept="application/pdf" style="display: none;"
+                    onchange="handleSingleFileSelect('unlock')">
+                <button class="btn" style="max-width: 250px; margin: 0 auto;"
+                    onclick="document.getElementById('unlockFileInput').click()">
+                    🔐 Cargar PDF (Desbloquear)
+                </button>
+
+                <div id="unlockFileInfo"
+                    style="display:none; margin-top: 15px; padding: 10px; border: 1px solid var(--border); border-radius: 4px; text-align: left;">
+                    <span id="unlockFileName" style="font-weight:bold;"></span>
+                    <div style="margin-top: 8px;">
+                        <input type="password" id="unlockFilePass" placeholder="Contraseña (opcional si no tiene)">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label style="display:flex; align-items:center; cursor:pointer;">
+                    <input type="checkbox" id="unlockRasterMode" style="width:auto; margin-right:10px;">
+                    <span>Modo Avanzado (Renderizar como Imágenes)</span>
+                </label>
+                <small style="color: var(--text-muted); display: block; margin-top: 4px;">
+                    Use este modo si el PDF tiene restricciones que no se pueden eliminar normalmente.
+                    El archivo resultante será más grande pero estará completamente desbloqueado.
+                    Este modo procesa en lotes para optimizar la memoria.
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label style="display:flex; align-items:center; cursor:pointer;">
+                    <input type="checkbox" id="unlockLowMemoryMode" style="width:auto; margin-right:10px;">
+                    <span>Modo Ahorro de Memoria (Para PDFs muy grandes)</span>
+                </label>
+                <small style="color: var(--text-muted); display: block; margin-top: 4px;">
+                    Active esta opción si está procesando un PDF con muchas páginas (>100).
+                    El proceso será más lento pero usará menos memoria.
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label>Nombre del archivo final (Desbloqueado)</label>
+                <input type="text" id="unlockOutputName" placeholder="archivo_desbloqueado.pdf"
+                    value="archivo_desbloqueado.pdf">
+            </div>
+
+            <button id="unlockBtn" class="btn" disabled onclick="unlockPDF()">Desbloquear PDF</button>
+            <p class="logs" id="unlockLogs"></p>
+
+            <div id="unlockResult" class="result-area">
+                ¡Éxito! <a id="unlockDownload" href="#" download>Descargar PDF Desbloqueado</a>
+            </div>
         </div>
 
-        <button id="extractBtn" class="btn" disabled>Extraer Páginas</button>
-        <a id="extractDownloadLink" class="download-link" style="display: none;">Descargar PDF Extraído</a>
+        <!-- ANNOTATE TAB -->
+        <div id="annotate" class="tab-content">
+            <div class="form-group"
+                style="text-align: center; padding: 20px; background: white; border: 2px dashed var(--border); border-radius: 8px;">
+                <label style="font-size: 1.1rem; margin-bottom: 10px; display:block;">1. Seleccionar Archivo PDF</label>
+
+                <input type="file" id="annotateFileInput" accept="application/pdf" style="display: none;"
+                    onchange="handleSingleFileSelect('annotate')">
+
+                <button class="btn" style="max-width: 250px; margin: 0 auto;"
+                    onclick="document.getElementById('annotateFileInput').click()">
+                    📂 Cargar PDF (Anotar)
+                </button>
+
+                <div id="annotateFileInfo"
+                    style="display:none; margin-top: 15px; padding: 10px; border: 1px solid var(--border); border-radius: 4px; text-align: left;">
+                    <span id="annotateFileName" style="font-weight:bold;"></span>
+                </div>
+            </div>
+
+            <button id="annotateBtn" class="btn" disabled onclick="startAnnotation()">
+                ✏️ Comenzar Revisión
+            </button>
+
+            <div id="annotateResult" class="result-area">
+                ¡Éxito! <a id="annotateDownload" href="#" download>Descargar PDF Anotado</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL FOR ANNOTATION -->
+    <div id="annotationModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+
+            <div class="toolbar">
+                <div class="toolbar-group">
+                    <button class="tool-btn active" onclick="setTool('cursor')" id="btnToolCursor"
+                        title="Cursor (Mover)">🖱️</button>
+                    <button class="tool-btn" onclick="setTool('highlight')" id="btnToolHighlight"
+                        title="Resaltar">🖍️</button>
+                    <button class="tool-btn" onclick="setTool('underline')" id="btnToolUnderline"
+                        title="Subrayar">U̲</button>
+                    <button class="tool-btn" onclick="setTool('strikethrough')" id="btnToolStrike"
+                        title="Tachar">S̶</button>
+                    <button class="tool-btn" onclick="setTool('text')" id="btnToolText" title="Texto">T</button>
+                    <button class="tool-btn" onclick="setTool('note')" id="btnToolNote" title="Nota">📝</button>
+                    <button class="tool-btn" onclick="setTool('arrow')" id="btnToolArrow" title="Flecha">➜</button>
+                    <button class="tool-btn" onclick="setTool('rectangle')" id="btnToolRect"
+                        title="Rectángulo">▭</button>
+                    <button class="tool-btn" onclick="setTool('circle')" id="btnToolCircle" title="Círculo">⭕</button>
+                    <button class="tool-btn" onclick="setTool('draw')" id="btnToolDraw" title="Dibujar">✏️</button>
+                </div>
+                <div class="toolbar-group">
+                    <label style="margin:0; font-size:0.85rem;">Color:</label>
+                    <input type="color" id="toolColor" value="#ffeb3b" class="color-picker">
+                    <button class="tool-btn" onclick="setQuickColor('#ffeb3b')" style="background:#ffeb3b; width:25px;"
+                        title="Amarillo"></button>
+                    <button class="tool-btn" onclick="setQuickColor('#ff6b6b')" style="background:#ff6b6b; width:25px;"
+                        title="Rojo"></button>
+                    <button class="tool-btn" onclick="setQuickColor('#4ecdc4')" style="background:#4ecdc4; width:25px;"
+                        title="Azul"></button>
+                    <button class="tool-btn" onclick="setQuickColor('#95e1d3')" style="background:#95e1d3; width:25px;"
+                        title="Verde"></button>
+                </div>
+                <div class="toolbar-group">
+                    <label style="margin:0; font-size:0.85rem;">Fuente:</label>
+                    <select id="toolFont" style="font-size:0.85rem; padding:4px;">
+                        <option value="Helvetica">Helvetica</option>
+                        <option value="Times-Roman">Times</option>
+                        <option value="Courier">Courier</option>
+                        <option value="Helvetica-Bold">Helvetica Bold</option>
+                        <option value="Times-Bold">Times Bold</option>
+                        <option value="Courier-Bold">Courier Bold</option>
+                    </select>
+                    <select id="toolSize" style="font-size:0.85rem; padding:4px; width:60px;">
+                        <option value="8">8pt</option>
+                        <option value="10">10pt</option>
+                        <option value="12" selected>12pt</option>
+                        <option value="14">14pt</option>
+                        <option value="16">16pt</option>
+                        <option value="18">18pt</option>
+                        <option value="24">24pt</option>
+                        <option value="32">32pt</option>
+                    </select>
+                </div>
+                <div class="toolbar-group">
+                    <button class="tool-btn" onclick="changePage(-1)" title="Página anterior">⏮️</button>
+                    <span id="pageLabel" style="font-weight:bold; font-size:0.9rem;">1 / 1</span>
+                    <button class="tool-btn" onclick="changePage(1)" title="Página siguiente">⏭️</button>
+                </div>
+                <div class="toolbar-group">
+                    <button class="tool-btn" onclick="undoAnnotation()" title="Deshacer"
+                        style="font-weight:bold;">↶</button>
+                    <button class="tool-btn" onclick="clearPageAnnotations()" title="Limpiar página"
+                        style="color:#ef4444;">🗑️</button>
+                </div>
+                <div class="toolbar-group" style="margin-left:auto;">
+                    <button class="tool-btn" style="background:#dbeafe; color:#1e40af; border-color:#93c5fd;"
+                        onclick="saveAnnotations()">💾 Guardar PDF</button>
+                    <button class="tool-btn" style="background:#fee2e2; color:#ef4444; border-color:#fca5a5;"
+                        onclick="closeModal()">Cerrar</button>
+                </div>
+            </div>
+
+            <div id="pdfViewerContainer">
+                <div id="pageContainer">
+                    <canvas id="pdfCanvas"></canvas>
+                    <canvas id="annotationLayer"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-    <script src="https://mozilla.github.io/pdf.js/build/pdf.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script>
-        const pdfFilesInput = document.getElementById("pdfFiles");
-        const pdfList = document.getElementById("pdfList");
-        const mergeBtn = document.getElementById("mergeBtn");
-        const downloadLink = document.getElementById("downloadLink");
-        const outputNameInput = document.getElementById("outputName");
+        // --- Global Config ---
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
 
-        const pdfFileInput = document.getElementById("pdfFile");
-        const extractBtn = document.getElementById("extractBtn");
-        const extractDownloadLink = document.getElementById("extractDownloadLink");
-        const startPageInput = document.getElementById("startPage");
-        const endPageInput = document.getElementById("endPage");
+        // --- Tab Logic ---
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
 
-        let pdfFiles = [];
+            document.getElementById(tabId).classList.add('active');
+            // Find button that calls this function with tabId and active it - simplified selector for demo
+            const buttons = document.querySelectorAll('.tab-btn');
+            if (tabId === 'merge') buttons[0].classList.add('active');
+            if (tabId === 'extract') buttons[1].classList.add('active');
+            if (tabId === 'search') buttons[2].classList.add('active');
+            if (tabId === 'chapters') buttons[3].classList.add('active');
+            if (tabId === 'unlock') buttons[4].classList.add('active');
+            if (tabId === 'annotate') buttons[5].classList.add('active');
+        }
 
-        pdfFilesInput.addEventListener("change", () => {
-            pdfFiles = Array.from(pdfFilesInput.files);
-            renderPdfList();
-            mergeBtn.disabled = pdfFiles.length === 0;
-        });
-
-        function renderPdfList() {
-            pdfList.innerHTML = '';
-            pdfFiles.forEach((file, index) => {
-                const li = document.createElement("li");
-                li.textContent = file.name;
-                const removeBtn = document.createElement("button");
-                removeBtn.textContent = "Eliminar";
-                removeBtn.addEventListener("click", () => {
-                    pdfFiles.splice(index, 1);
-                    renderPdfList();
-                    mergeBtn.disabled = pdfFiles.length === 0;
-                });
-                li.appendChild(removeBtn);
-                pdfList.appendChild(li);
+        // --- Helper Functions ---
+        async function readPdfBytes(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
             });
         }
 
-        mergeBtn.addEventListener("click", async () => {
-            const outputName = outputNameInput.value || "pdf_unido.pdf";
-            const newPdfDoc = await PDFLib.PDFDocument.create();
+        async function loadPdfWithPasswordFallback(bytes, password) {
+            try {
+                // Try loading with password if provided
+                if (password) {
+                    return await PDFLib.PDFDocument.load(bytes, { password, ignoreEncryption: false });
+                } else {
+                    // Try without password first
+                    return await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: false });
+                }
+            } catch (e) {
+                console.error("Error loading PDF:", e);
 
-            for (const file of pdfFiles) {
-                const arrayBuffer = await file.arrayBuffer();
-                const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
-                const copiedPages = await newPdfDoc.copyPages(pdfDoc, pdfDoc.getPageIndices());
-                copiedPages.forEach(page => newPdfDoc.addPage(page));
+                // Check if it's a password-related error
+                if (e.message && (e.message.includes('password') || e.message.includes('encrypted') || e.message.includes('PasswordException'))) {
+                    if (!password) {
+                        throw new Error("Este PDF está protegido con contraseña. Por favor, ingrese la contraseña.");
+                    } else {
+                        throw new Error("Contraseña incorrecta. Por favor, verifique e intente nuevamente.");
+                    }
+                }
+
+                // For other errors
+                throw new Error("Error al cargar el PDF: " + (e.message || "Archivo corrupto o no válido"));
+            }
+        }
+
+        function triggerDownload(pdfBytes, filename, linkId, resultArea) {
+            const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            const link = document.getElementById(linkId);
+            link.href = url;
+            link.download = filename;
+            resultArea.style.display = 'block';
+        }
+
+        // --- UNLOCK LOGIC ---
+        async function unlockPDF() {
+            const input = document.getElementById('unlockFileInput');
+            if (!input.files.length) return;
+
+            const file = input.files[0];
+            const password = document.getElementById('unlockFilePass').value || '';
+            const outputName = document.getElementById('unlockOutputName').value || 'desbloqueado.pdf';
+            const useRasterMode = document.getElementById('unlockRasterMode').checked;
+            const useLowMemoryMode = document.getElementById('unlockLowMemoryMode').checked;
+
+            const btn = document.getElementById('unlockBtn');
+            const resultArea = document.getElementById('unlockResult');
+            const logs = document.getElementById('unlockLogs');
+
+            btn.disabled = true;
+            btn.textContent = "Desbloqueando...";
+            resultArea.style.display = 'none';
+            logs.textContent = "Iniciando proceso de desbloqueo...";
+
+            // Configurar parámetros de memoria según el modo
+            window.PDF_MEMORY_CONFIG = {
+                lowMemoryMode: useLowMemoryMode,
+                batchSize: useLowMemoryMode ? 3 : 5,
+                copyBatchSize: useLowMemoryMode ? 5 : 10,
+                scale: useLowMemoryMode ? 1.2 : 1.5,
+                imageQuality: useLowMemoryMode ? 0.85 : 0.92,
+                waitTime: useLowMemoryMode ? 100 : 50
+            };
+
+            try {
+                const bytes = await readPdfBytes(file);
+
+                if (useRasterMode) {
+                    // MODO AVANZADO: Renderizar páginas como imágenes
+                    logs.textContent = useLowMemoryMode ?
+                        "Usando modo avanzado con ahorro de memoria..." :
+                        "Usando modo avanzado (renderización)...";
+                    await unlockByRasterization(bytes, password, outputName, logs, resultArea);
+                } else {
+                    // MODO NORMAL: Intentar múltiples estrategias
+                    logs.textContent = "Intentando desbloquear con método estándar...";
+                    await unlockByStandardMethod(bytes, password, outputName, logs, resultArea);
+                }
+
+            } catch (error) {
+                console.error("Unlock error:", error);
+                logs.textContent = "Error: " + error.message;
+
+                // Si el modo normal falló, ofrecer usar modo avanzado automáticamente
+                if (!useRasterMode) {
+                    const useAdvanced = confirm(
+                        "Error en el modo estándar: " + error.message +
+                        "\n\n¿Desea intentar con el Modo Avanzado automáticamente?\n\n" +
+                        "El Modo Avanzado renderiza las páginas como imágenes y funciona con cualquier PDF protegido."
+                    );
+
+                    if (useAdvanced) {
+                        try {
+                            logs.textContent = "Reintentando con Modo Avanzado...";
+                            btn.textContent = "Procesando en Modo Avanzado...";
+                            await unlockByRasterization(bytes, password, outputName, logs, resultArea);
+                        } catch (advError) {
+                            console.error("Advanced mode error:", advError);
+                            logs.textContent = "Error en Modo Avanzado: " + advError.message;
+                            alert("Error: " + advError.message);
+                        }
+                    }
+                } else {
+                    alert("Error: " + error.message);
+                }
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "Desbloquear PDF";
+            }
+        }
+
+        // Método estándar con múltiples estrategias
+        async function unlockByStandardMethod(bytes, password, outputName, logs, resultArea) {
+            let pdfDoc = null;
+            let strategy = '';
+            let useSimpleSave = false;
+
+            // Estrategia 1: Sin contraseña
+            if (!password || password.trim() === '') {
+                logs.textContent = "Estrategia 1: Intentando sin contraseña...";
+                try {
+                    pdfDoc = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: false });
+                    strategy = 'sin contraseña';
+                    useSimpleSave = true; // No hay encriptación, guardar directo
+                } catch (e) {
+                    console.log("Estrategia 1 falló:", e.message);
+                }
             }
 
-            const pdfBytes = await newPdfDoc.save();
-            const blob = new Blob([pdfBytes], { type: "application/pdf" });
-            downloadLink.href = URL.createObjectURL(blob);
-            downloadLink.download = outputName;
-            downloadLink.style.display = "block";
-            downloadLink.textContent = "Descargar PDF Unido";
+            // Estrategia 2: Con contraseña proporcionada
+            if (!pdfDoc && password) {
+                logs.textContent = "Estrategia 2: Usando contraseña proporcionada...";
+                try {
+                    pdfDoc = await PDFLib.PDFDocument.load(bytes, { password: password, ignoreEncryption: false });
+                    strategy = 'con contraseña';
+                    useSimpleSave = false; // Hay contraseña, necesitamos recrear
+                } catch (e) {
+                    console.log("Estrategia 2 falló:", e.message);
+                }
+            }
+
+            // Estrategia 3: Ignorar encriptación sin contraseña
+            if (!pdfDoc && !password) {
+                logs.textContent = "Estrategia 3: Intentando ignorar encriptación...";
+                try {
+                    pdfDoc = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true });
+                    strategy = 'ignorando encriptación';
+                    useSimpleSave = false;
+                } catch (e) {
+                    console.log("Estrategia 3 falló:", e.message);
+                }
+            }
+
+            // Estrategia 4: Ignorar encriptación con contraseña
+            if (!pdfDoc && password) {
+                logs.textContent = "Estrategia 4: Combinando contraseña con ignoreEncryption...";
+                try {
+                    pdfDoc = await PDFLib.PDFDocument.load(bytes, { password: password, ignoreEncryption: true });
+                    strategy = 'contraseña + ignorar encriptación';
+                    useSimpleSave = false;
+                } catch (e) {
+                    console.log("Estrategia 4 falló:", e.message);
+                }
+            }
+
+            // Estrategia 5: Contraseña vacía explícita
+            if (!pdfDoc) {
+                logs.textContent = "Estrategia 5: Intentando con contraseña vacía...";
+                try {
+                    pdfDoc = await PDFLib.PDFDocument.load(bytes, { password: '', ignoreEncryption: true });
+                    strategy = 'contraseña vacía';
+                    useSimpleSave = false;
+                } catch (e) {
+                    console.log("Estrategia 5 falló:", e.message);
+                }
+            }
+
+            if (!pdfDoc) {
+                throw new Error("No se pudo abrir el PDF. Intente con el 'Modo Avanzado' activado.");
+            }
+
+            logs.textContent = `PDF cargado exitosamente (${strategy}). Creando documento desbloqueado...`;
+
+            let pdfBytes;
+
+            // Verificar si el PDF tiene contenido
+            const pageCount = pdfDoc.getPageCount();
+            console.log(`PDF tiene ${pageCount} páginas`);
+
+            if (useSimpleSave) {
+                // Si no había encriptación, simplemente guardar sin opciones de seguridad
+                logs.textContent = "Guardando PDF sin restricciones (método directo)...";
+                pdfBytes = await pdfDoc.save({
+                    useObjectStreams: false,
+                    addDefaultPage: false
+                });
+            } else {
+                // Si había encriptación, crear nuevo documento y copiar páginas
+                logs.textContent = "Creando nuevo PDF sin restricciones...";
+                const newPdf = await PDFLib.PDFDocument.create();
+
+                // Copiar metadata
+                const title = pdfDoc.getTitle();
+                const author = pdfDoc.getAuthor();
+                const subject = pdfDoc.getSubject();
+                const keywords = pdfDoc.getKeywords();
+
+                if (title) newPdf.setTitle(title);
+                if (author) newPdf.setAuthor(author);
+                if (subject) newPdf.setSubject(subject);
+                if (keywords) newPdf.setKeywords(keywords);
+
+                // Copiar páginas en lotes para mejor gestión de memoria
+                const pageIndices = pdfDoc.getPageIndices();
+                const totalPagesToCopy = pageIndices.length;
+                const config = window.PDF_MEMORY_CONFIG || { copyBatchSize: 10, waitTime: 30 };
+                const COPY_BATCH_SIZE = config.copyBatchSize;
+
+                logs.textContent = `Copiando ${totalPagesToCopy} páginas (lotes de ${COPY_BATCH_SIZE})...`;
+
+                for (let i = 0; i < totalPagesToCopy; i += COPY_BATCH_SIZE) {
+                    const endIndex = Math.min(i + COPY_BATCH_SIZE, totalPagesToCopy);
+                    const batchIndices = pageIndices.slice(i, endIndex);
+
+                    logs.textContent = `Copiando páginas ${i + 1}-${endIndex} de ${totalPagesToCopy}... (${Math.round(endIndex / totalPagesToCopy * 100)}%)`;
+
+                    const copiedPages = await newPdf.copyPages(pdfDoc, batchIndices);
+                    copiedPages.forEach(page => newPdf.addPage(page));
+
+                    // Liberar memoria cada lote
+                    if (endIndex < totalPagesToCopy) {
+                        await waitAndClearMemory(config.waitTime || 30);
+                    }
+                }
+
+                logs.textContent = "Guardando PDF sin restricciones...";
+
+                // Liberar memoria antes de guardar
+                await waitAndClearMemory(100);
+
+                pdfBytes = await newPdf.save({
+                    useObjectStreams: false,
+                    addDefaultPage: false
+                });
+            }
+
+            // Verificar que el PDF generado no esté vacío
+            if (!pdfBytes || pdfBytes.length === 0) {
+                throw new Error("Error: El PDF generado está vacío. Use el 'Modo Avanzado'.");
+            }
+
+            console.log(`PDF desbloqueado generado: ${pdfBytes.length} bytes`);
+
+            const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+
+            const link = document.getElementById('unlockDownload');
+            link.href = url;
+            link.download = outputName;
+
+            resultArea.style.display = 'block';
+            logs.textContent = `¡Éxito! PDF desbloqueado (${pageCount} páginas) usando: ${strategy}`;
+        }
+
+        // Función para liberar memoria
+        function forceGarbageCollection() {
+            // Forzar limpieza de memoria
+            if (window.gc) {
+                window.gc();
+            }
+        }
+
+        // Función para esperar y liberar memoria
+        function waitAndClearMemory(ms = 10) {
+            return new Promise(resolve => {
+                setTimeout(() => {
+                    forceGarbageCollection();
+                    resolve();
+                }, ms);
+            });
+        }
+
+        // Método por rasterización (convierte a imágenes) - OPTIMIZADO PARA MEMORIA
+        async function unlockByRasterization(bytes, password, outputName, logs, resultArea) {
+            logs.textContent = "Cargando PDF para renderizar...";
+
+            const loadingTask = pdfjsLib.getDocument({
+                data: bytes,
+                password: password || undefined,
+                // Optimizaciones de memoria para PDF.js
+                disableAutoFetch: true,
+                disableStream: false,
+                disableRange: false
+            });
+
+            const pdfJsDoc = await loadingTask.promise;
+            const totalPages = pdfJsDoc.numPages;
+
+            logs.textContent = `Renderizando ${totalPages} páginas como imágenes...`;
+
+            const newPdf = await PDFLib.PDFDocument.create();
+
+            // Obtener configuración de memoria
+            const config = window.PDF_MEMORY_CONFIG || {
+                batchSize: 5,
+                scale: 1.5,
+                imageQuality: 0.92,
+                waitTime: 50,
+                lowMemoryMode: false
+            };
+
+            const BATCH_SIZE = config.batchSize;
+            const SCALE = config.scale;
+            const QUALITY = config.imageQuality;
+            const WAIT_TIME = config.waitTime;
+
+            logs.textContent = `Renderizando ${totalPages} páginas (escala ${SCALE}, calidad ${Math.round(QUALITY * 100)}%)...`;
+
+            // Crear un solo canvas reutilizable
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d', {
+                willReadFrequently: false,
+                alpha: false // Optimización de memoria
+            });
+
+            for (let i = 1; i <= totalPages; i++) {
+                try {
+                    const percentage = Math.round(i / totalPages * 100);
+                    logs.textContent = `Procesando página ${i}/${totalPages}... (${percentage}%)`;
+
+                    const page = await pdfJsDoc.getPage(i);
+                    const viewport = page.getViewport({ scale: SCALE });
+
+                    // Redimensionar canvas (reutilizar en vez de crear nuevo)
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+
+                    // Limpiar canvas antes de renderizar
+                    context.clearRect(0, 0, canvas.width, canvas.height);
+
+                    // Renderizar página
+                    await page.render({
+                        canvasContext: context,
+                        viewport: viewport
+                    }).promise;
+
+                    // Convertir a imagen con calidad optimizada
+                    const imgDataUrl = canvas.toDataURL('image/jpeg', QUALITY);
+
+                    // Convertir DataURL a bytes
+                    const response = await fetch(imgDataUrl);
+                    const imgBytes = await response.arrayBuffer();
+
+                    // Embeber imagen
+                    const jpegImage = await newPdf.embedJpg(imgBytes);
+                    const newPage = newPdf.addPage([viewport.width, viewport.height]);
+
+                    newPage.drawImage(jpegImage, {
+                        x: 0,
+                        y: 0,
+                        width: viewport.width,
+                        height: viewport.height,
+                    });
+
+                    // Limpiar página procesada
+                    page.cleanup();
+
+                    // Cada BATCH_SIZE páginas, hacer una pausa para liberar memoria
+                    if (i % BATCH_SIZE === 0) {
+                        logs.textContent = `Liberando memoria... (${i}/${totalPages} - ${percentage}%)`;
+                        await waitAndClearMemory(WAIT_TIME);
+                    }
+
+                } catch (pageError) {
+                    console.error(`Error procesando página ${i}:`, pageError);
+                    logs.textContent = `Advertencia: Error en página ${i}, continuando...`;
+                    await waitAndClearMemory(WAIT_TIME * 2);
+                }
+            }
+
+            // Limpiar canvas
+            canvas.width = 0;
+            canvas.height = 0;
+
+            logs.textContent = "Guardando PDF desbloqueado...";
+
+            // Liberar memoria antes de guardar
+            await waitAndClearMemory(100);
+
+            const pdfBytes = await newPdf.save({
+                useObjectStreams: false,
+                addDefaultPage: false
+            });
+
+            // Liberar documento original
+            pdfJsDoc.destroy();
+
+            logs.textContent = "Generando descarga...";
+
+            const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+
+            const link = document.getElementById('unlockDownload');
+            link.href = url;
+            link.download = outputName;
+
+            resultArea.style.display = 'block';
+            logs.textContent = `¡Éxito! PDF desbloqueado (${totalPages} páginas) mediante renderización.`;
+
+            // Última limpieza de memoria
+            forceGarbageCollection();
+        }
+        // --- MERGE LOGIC ---
+        let mergeFiles = [];
+
+        document.getElementById('mergeFilesInput').addEventListener('change', (e) => {
+            const newFiles = Array.from(e.target.files).map(f => ({
+                file: f,
+                password: ''
+            }));
+            mergeFiles = [...mergeFiles, ...newFiles];
+            renderMergeList();
+            updateMergeBtnState();
+            e.target.value = ''; // Reset to allow adding same file again
         });
 
-        pdfFileInput.addEventListener("change", () => {
-            extractBtn.disabled = !pdfFileInput.files.length;
+        function renderMergeList() {
+            const list = document.getElementById('mergeList');
+            list.innerHTML = '';
+            mergeFiles.forEach((item, index) => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                <div class="file-info">
+                    <span class="file-name">${item.file.name}</span>
+                    <div class="file-password">
+                        <input type="password" placeholder="Contraseña (opcional)" 
+                               value="${item.password}" 
+                               oninput="updateMergePassword(${index}, this.value)">
+                    </div>
+                </div>
+                <button class="btn-remove" onclick="removeMergeFile(${index})">Eliminar</button>
+            `;
+                list.appendChild(li);
+            });
+        }
+
+        function updateMergePassword(index, val) {
+            mergeFiles[index].password = val;
+        }
+
+        function removeMergeFile(index) {
+            mergeFiles.splice(index, 1);
+            renderMergeList();
+            updateMergeBtnState();
+        }
+
+        function updateMergeBtnState() {
+            document.getElementById('mergeBtn').disabled = mergeFiles.length < 2;
+            const msg = mergeFiles.length === 0 ? "Añade archivos para comenzar." : `${mergeFiles.length} archivos listos.`;
+            document.getElementById('mergeLogs').textContent = msg;
+        }
+
+        async function mergePDFs() {
+            const btn = document.getElementById('mergeBtn');
+            const logs = document.getElementById('mergeLogs');
+            const resultArea = document.getElementById('mergeResult');
+
+            btn.disabled = true;
+            btn.textContent = "Procesando...";
+            resultArea.style.display = 'none';
+            logs.textContent = "Iniciando unión...";
+
+            try {
+                const newPdf = await PDFLib.PDFDocument.create();
+
+                for (let i = 0; i < mergeFiles.length; i++) {
+                    const item = mergeFiles[i];
+                    logs.textContent = `Procesando archivo ${i + 1}/${mergeFiles.length}: ${item.file.name}...`;
+
+                    const bytes = await readPdfBytes(item.file);
+                    let pdfDoc;
+                    try {
+                        pdfDoc = await loadPdfWithPasswordFallback(bytes, item.password);
+                    } catch (e) {
+                        throw new Error(`Fallo al abrir ${item.file.name}. ¿Requiere contraseña?`);
+                    }
+
+                    const copiedPages = await newPdf.copyPages(pdfDoc, pdfDoc.getPageIndices());
+                    copiedPages.forEach(p => newPdf.addPage(p));
+                }
+
+                logs.textContent = "Generando archivo final...";
+                const pdfBytes = await newPdf.save();
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+
+                const url = URL.createObjectURL(blob);
+                const link = document.getElementById('mergeDownload');
+                link.href = url;
+                link.download = document.getElementById('mergeOutputName').value || 'unido.pdf';
+
+                resultArea.style.display = 'block';
+                logs.textContent = "¡Completado!";
+
+            } catch (error) {
+                alert(error.message);
+                logs.textContent = "Error: " + error.message;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "Unir PDFs Seleccionados";
+            }
+        }
+
+        // --- RANGE EXTRACT LOGIC ---
+        let singleFile = null;
+
+        function handleSingleFileSelect(tab) {
+            const input = document.getElementById(tab + 'FileInput');
+            const info = document.getElementById(tab + 'FileInfo');
+            const nameSpan = document.getElementById(tab + 'FileName');
+            const btn = document.getElementById(tab + 'Btn');
+
+            if (input.files.length > 0) {
+                info.style.display = 'block';
+                nameSpan.textContent = input.files[0].name;
+                btn.disabled = false;
+            } else {
+                info.style.display = 'none';
+                btn.disabled = true;
+            }
+        }
+
+        async function extractPages() {
+            const input = document.getElementById('extractFileInput');
+            if (!input.files.length) return;
+
+            const file = input.files[0];
+            const password = document.getElementById('extractFilePass').value;
+            const start = parseInt(document.getElementById('startPage').value);
+            const end = parseInt(document.getElementById('endPage').value);
+            const outputName = document.getElementById('extractOutputName').value || 'extracto.pdf';
+            const useRasterize = document.getElementById('rasterizeMode').checked;
+
+            const btn = document.getElementById('extractBtn');
+            const resultArea = document.getElementById('extractResult');
+
+            if (start < 1 || end < start) {
+                alert("Rango de páginas inválido.");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = useRasterize ? "Procesando como Imágenes..." : "Procesando...";
+            resultArea.style.display = 'none';
+
+            try {
+                const bytes = await readPdfBytes(file);
+
+                if (useRasterize) {
+                    // --- RASTERIZATION MODE (Compability) ---
+                    // Use PDF.js to render pages to canvas, then embed in new PDF
+
+                    const loadingTask = pdfjsLib.getDocument({ data: bytes, password: password });
+                    const pdfJsDoc = await loadingTask.promise;
+                    const totalPages = pdfJsDoc.numPages;
+
+                    if (end > totalPages) {
+                        throw new Error(`El PDF solo tiene ${totalPages} páginas.`);
+                    }
+
+                    const newPdf = await PDFLib.PDFDocument.create();
+
+                    // Helper to create valid canvas in Node/Browser 
+                    // In browser document.createElement('canvas') is fine
+
+                    for (let i = start; i <= end; i++) {
+                        const page = await pdfJsDoc.getPage(i);
+                        const scale = 2; // Higher scale = better quality but larger size
+                        const viewport = page.getViewport({ scale: scale });
+
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        canvas.height = viewport.height;
+                        canvas.width = viewport.width;
+
+                        await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+                        const imgDataUrl = canvas.toDataURL('image/png');
+                        const imgBytes = await fetch(imgDataUrl).then(res => res.arrayBuffer());
+
+                        const pngImage = await newPdf.embedPng(imgBytes);
+                        const newPage = newPdf.addPage([viewport.width / scale * 72 / 72, viewport.height / scale * 72 / 72]); // keep original dimensions
+                        // Although viewport is scaled, we want the page size to match original visual size or scaled?
+                        // Usually we map pixels to points. 1px = 0.75 point approx, but let's keep it simple.
+                        // Let's set page size to match the image dimensions for now to avoid cropping
+                        newPage.setSize(viewport.width, viewport.height);
+
+                        newPage.drawImage(pngImage, {
+                            x: 0,
+                            y: 0,
+                            width: viewport.width,
+                            height: viewport.height,
+                        });
+                    }
+
+                    const pdfBytes = await newPdf.save();
+                    triggerDownload(pdfBytes, outputName, 'extractDownload', resultArea);
+
+                } else {
+                    // --- NORMAL MODE ---
+                    const pdfDoc = await loadPdfWithPasswordFallback(bytes, password);
+                    const totalPages = pdfDoc.getPageCount();
+
+                    if (end > totalPages) {
+                        alert(`El PDF solo tiene ${totalPages} páginas.`);
+                        btn.disabled = false;
+                        btn.textContent = "Extraer Páginas";
+                        return;
+                    }
+
+                    const newPdf = await PDFLib.PDFDocument.create();
+                    const rangeIndices = [];
+                    for (let i = start; i <= end; i++) rangeIndices.push(i - 1);
+
+                    const copiedPages = await newPdf.copyPages(pdfDoc, rangeIndices);
+                    copiedPages.forEach(p => newPdf.addPage(p));
+
+                    const pdfBytes = await newPdf.save();
+                    triggerDownload(pdfBytes, outputName, 'extractDownload', resultArea);
+                }
+
+            } catch (error) {
+                alert("Error: " + error.message);
+                console.error(error);
+            } finally {
+
+                btn.disabled = false;
+                btn.textContent = "Extraer Páginas";
+            }
+        }
+
+        // --- ANNOTATION LOGIC ---
+        let annotState = {
+            pdfDoc: null,
+            file: null,
+            totalPages: 0,
+            currentPage: 1,
+            scale: 1.5,
+            tool: 'cursor',
+            color: '#ffeb3b',
+            font: 'Helvetica',
+            fontSize: 12,
+            annotations: [],
+            isDrawing: false,
+            startX: 0,
+            startY: 0,
+            drawPoints: []
+        };
+
+        function setTool(tool) {
+            annotState.tool = tool;
+            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+            const toolMap = {
+                'cursor': 'btnToolCursor',
+                'highlight': 'btnToolHighlight',
+                'underline': 'btnToolUnderline',
+                'strikethrough': 'btnToolStrike',
+                'text': 'btnToolText',
+                'note': 'btnToolNote',
+                'arrow': 'btnToolArrow',
+                'rectangle': 'btnToolRect',
+                'circle': 'btnToolCircle',
+                'draw': 'btnToolDraw'
+            };
+
+            if (toolMap[tool]) {
+                document.getElementById(toolMap[tool]).classList.add('active');
+            }
+
+            const layer = document.getElementById('annotationLayer');
+            layer.style.cursor = tool === 'cursor' ? 'default' : 'crosshair';
+        }
+
+        function setQuickColor(color) {
+            annotState.color = color;
+            document.getElementById('toolColor').value = color;
+        }
+
+        function undoAnnotation() {
+            const pageAnnotations = annotState.annotations.filter(a => a.page === annotState.currentPage);
+            if (pageAnnotations.length > 0) {
+                const lastAnnotation = pageAnnotations[pageAnnotations.length - 1];
+                const index = annotState.annotations.indexOf(lastAnnotation);
+                annotState.annotations.splice(index, 1);
+                redrawAnnotations();
+            }
+        }
+
+        function clearPageAnnotations() {
+            if (confirm('¿Limpiar todas las anotaciones de esta página?')) {
+                annotState.annotations = annotState.annotations.filter(a => a.page !== annotState.currentPage);
+                redrawAnnotations();
+            }
+        }
+
+        document.getElementById('toolColor').addEventListener('input', (e) => {
+            annotState.color = e.target.value;
         });
 
-        extractBtn.addEventListener("click", async () => {
-            const startPage = parseInt(startPageInput.value);
-            const endPage = parseInt(endPageInput.value);
-            const outputName = outputNameInput.value || "paginas_extraidas.pdf";
+        document.getElementById('toolFont').addEventListener('change', (e) => {
+            annotState.font = e.target.value;
+        });
 
-            if (pdfFileInput.files.length === 0) {
-                alert("Por favor, selecciona un archivo PDF.");
+        document.getElementById('toolSize').addEventListener('change', (e) => {
+            annotState.fontSize = parseInt(e.target.value);
+        });
+
+        async function startAnnotation() {
+            const input = document.getElementById('annotateFileInput');
+            if (!input.files.length) return;
+            annotState.file = input.files[0];
+
+            try {
+                const bytes = await readPdfBytes(annotState.file);
+                // Robust loading for both array buffer and Uint8Array
+                const loadingTask = pdfjsLib.getDocument({ data: bytes });
+                annotState.pdfDoc = await loadingTask.promise;
+                annotState.totalPages = annotState.pdfDoc.numPages;
+                annotState.currentPage = 1;
+                annotState.annotations = [];
+
+                // Open Modal
+                document.getElementById('annotationModal').style.display = 'flex';
+                renderPage(annotState.currentPage);
+            } catch (e) {
+                console.error(e);
+                alert("Error al cargar PDF: " + e.message);
+            }
+            // Reset input so change event fires again if same file selected
+            input.value = '';
+        }
+
+        function closeModal() {
+            document.getElementById('annotationModal').style.display = 'none';
+        }
+
+        async function changePage(delta) {
+            if (!annotState.pdfDoc) return;
+            const newPage = annotState.currentPage + delta;
+            if (newPage >= 1 && newPage <= annotState.totalPages) {
+                annotState.currentPage = newPage;
+                renderPage(newPage);
+            }
+        }
+
+        async function renderPage(pageNum) {
+            if (!annotState.pdfDoc) return;
+
+            document.getElementById('pageLabel').textContent = `${pageNum} / ${annotState.totalPages}`;
+
+            const page = await annotState.pdfDoc.getPage(pageNum);
+            const viewport = page.getViewport({ scale: annotState.scale });
+
+            const canvas = document.getElementById('pdfCanvas');
+            const context = canvas.getContext('2d');
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+
+            const layer = document.getElementById('annotationLayer');
+            layer.height = viewport.height;
+            layer.width = viewport.width;
+
+            await page.render({ canvasContext: context, viewport: viewport }).promise;
+            redrawAnnotations();
+        }
+
+        // Canvas Interaction
+        const layer = document.getElementById('annotationLayer');
+        const ctx = layer.getContext('2d');
+
+        layer.addEventListener('mousedown', handleMouseDown);
+        layer.addEventListener('mousemove', handleMouseMove);
+        layer.addEventListener('mouseup', handleMouseUp);
+
+        function handleMouseDown(e) {
+            if (annotState.tool === 'cursor') return;
+
+            const rect = layer.getBoundingClientRect();
+            annotState.startX = e.clientX - rect.left;
+            annotState.startY = e.clientY - rect.top;
+
+            if (['highlight', 'underline', 'strikethrough', 'arrow', 'rectangle', 'circle'].includes(annotState.tool)) {
+                annotState.isDrawing = true;
+            } else if (annotState.tool === 'draw') {
+                annotState.isDrawing = true;
+                annotState.drawPoints = [{ x: annotState.startX, y: annotState.startY }];
+            } else if (annotState.tool === 'text') {
+                const text = prompt("Ingrese texto:");
+                if (text) {
+                    annotState.annotations.push({
+                        type: 'text',
+                        page: annotState.currentPage,
+                        x: annotState.startX,
+                        y: annotState.startY,
+                        text: text,
+                        color: annotState.color,
+                        font: annotState.font,
+                        fontSize: annotState.fontSize,
+                        vWidth: layer.width,
+                        vHeight: layer.height
+                    });
+                    redrawAnnotations();
+                }
+            } else if (annotState.tool === 'note') {
+                const text = prompt("Ingrese nota:");
+                if (text) {
+                    annotState.annotations.push({
+                        type: 'note',
+                        page: annotState.currentPage,
+                        x: annotState.startX,
+                        y: annotState.startY,
+                        text: text,
+                        color: annotState.color,
+                        fontSize: annotState.fontSize,
+                        vWidth: layer.width,
+                        vHeight: layer.height
+                    });
+                    redrawAnnotations();
+                }
+            }
+        }
+
+        function handleMouseMove(e) {
+            if (!annotState.isDrawing) return;
+
+            const rect = layer.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            if (annotState.tool === 'draw') {
+                annotState.drawPoints.push({ x: mouseX, y: mouseY });
+            }
+
+            redrawAnnotations();
+            drawPreview(mouseX, mouseY);
+        }
+
+        function handleMouseUp(e) {
+            if (!annotState.isDrawing) return;
+            annotState.isDrawing = false;
+
+            const rect = layer.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            const width = mouseX - annotState.startX;
+            const height = mouseY - annotState.startY;
+
+            const annotation = {
+                type: annotState.tool,
+                page: annotState.currentPage,
+                x: Math.min(annotState.startX, mouseX),
+                y: Math.min(annotState.startY, mouseY),
+                width: Math.abs(width),
+                height: Math.abs(height),
+                color: annotState.color,
+                vWidth: layer.width,
+                vHeight: layer.height
+            };
+
+            if (annotState.tool === 'arrow') {
+                annotation.x1 = annotState.startX;
+                annotation.y1 = annotState.startY;
+                annotation.x2 = mouseX;
+                annotation.y2 = mouseY;
+            } else if (annotState.tool === 'draw') {
+                annotation.points = annotState.drawPoints;
+                annotState.drawPoints = [];
+            }
+
+            if (annotation.width > 2 || annotation.height > 2 || annotState.tool === 'draw' || annotState.tool === 'arrow') {
+                annotState.annotations.push(annotation);
+            }
+
+            redrawAnnotations();
+        }
+
+        function drawPreview(mouseX, mouseY) {
+            const width = mouseX - annotState.startX;
+            const height = mouseY - annotState.startY;
+
+            ctx.strokeStyle = annotState.color;
+            ctx.fillStyle = annotState.color;
+            ctx.lineWidth = 2;
+
+            if (annotState.tool === 'highlight') {
+                ctx.globalAlpha = 0.3;
+                ctx.fillRect(annotState.startX, annotState.startY, width, height);
+                ctx.globalAlpha = 1.0;
+            } else if (annotState.tool === 'underline') {
+                ctx.beginPath();
+                ctx.moveTo(annotState.startX, annotState.startY + Math.abs(height));
+                ctx.lineTo(mouseX, annotState.startY + Math.abs(height));
+                ctx.stroke();
+            } else if (annotState.tool === 'strikethrough') {
+                const midY = annotState.startY + height / 2;
+                ctx.beginPath();
+                ctx.moveTo(annotState.startX, midY);
+                ctx.lineTo(mouseX, midY);
+                ctx.stroke();
+            } else if (annotState.tool === 'arrow') {
+                drawArrow(ctx, annotState.startX, annotState.startY, mouseX, mouseY, annotState.color);
+            } else if (annotState.tool === 'rectangle') {
+                ctx.strokeRect(annotState.startX, annotState.startY, width, height);
+            } else if (annotState.tool === 'circle') {
+                const radiusX = Math.abs(width) / 2;
+                const radiusY = Math.abs(height) / 2;
+                const centerX = annotState.startX + width / 2;
+                const centerY = annotState.startY + height / 2;
+                ctx.beginPath();
+                ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
+                ctx.stroke();
+            } else if (annotState.tool === 'draw') {
+                ctx.beginPath();
+                ctx.moveTo(annotState.drawPoints[0].x, annotState.drawPoints[0].y);
+                for (let i = 1; i < annotState.drawPoints.length; i++) {
+                    ctx.lineTo(annotState.drawPoints[i].x, annotState.drawPoints[i].y);
+                }
+                ctx.stroke();
+            }
+        }
+
+        function drawArrow(ctx, x1, y1, x2, y2, color) {
+            const headLength = 15;
+            const angle = Math.atan2(y2 - y1, x2 - x1);
+
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.lineWidth = 2;
+
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(x2, y2);
+            ctx.lineTo(x2 - headLength * Math.cos(angle - Math.PI / 6), y2 - headLength * Math.sin(angle - Math.PI / 6));
+            ctx.lineTo(x2 - headLength * Math.cos(angle + Math.PI / 6), y2 - headLength * Math.sin(angle + Math.PI / 6));
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function redrawAnnotations() {
+            ctx.clearRect(0, 0, layer.width, layer.height);
+
+            annotState.annotations.forEach(ann => {
+                if (ann.page !== annotState.currentPage) return;
+
+                ctx.strokeStyle = ann.color;
+                ctx.fillStyle = ann.color;
+                ctx.lineWidth = 2;
+
+                if (ann.type === 'highlight') {
+                    ctx.globalAlpha = 0.3;
+                    ctx.fillRect(ann.x, ann.y, ann.width, ann.height);
+                    ctx.globalAlpha = 1.0;
+                } else if (ann.type === 'underline') {
+                    ctx.beginPath();
+                    ctx.moveTo(ann.x, ann.y + ann.height);
+                    ctx.lineTo(ann.x + ann.width, ann.y + ann.height);
+                    ctx.stroke();
+                } else if (ann.type === 'strikethrough') {
+                    const midY = ann.y + ann.height / 2;
+                    ctx.beginPath();
+                    ctx.moveTo(ann.x, midY);
+                    ctx.lineTo(ann.x + ann.width, midY);
+                    ctx.stroke();
+                } else if (ann.type === 'arrow') {
+                    drawArrow(ctx, ann.x1, ann.y1, ann.x2, ann.y2, ann.color);
+                } else if (ann.type === 'rectangle') {
+                    ctx.strokeRect(ann.x, ann.y, ann.width, ann.height);
+                } else if (ann.type === 'circle') {
+                    const centerX = ann.x + ann.width / 2;
+                    const centerY = ann.y + ann.height / 2;
+                    const radiusX = ann.width / 2;
+                    const radiusY = ann.height / 2;
+                    ctx.beginPath();
+                    ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
+                    ctx.stroke();
+                } else if (ann.type === 'draw') {
+                    if (ann.points && ann.points.length > 1) {
+                        ctx.beginPath();
+                        ctx.moveTo(ann.points[0].x, ann.points[0].y);
+                        for (let i = 1; i < ann.points.length; i++) {
+                            ctx.lineTo(ann.points[i].x, ann.points[i].y);
+                        }
+                        ctx.stroke();
+                    }
+                } else if (ann.type === 'text') {
+                    const fontSize = ann.fontSize || 12;
+                    ctx.font = `${fontSize}px ${ann.font || 'Arial'}`;
+                    ctx.fillText(ann.text, ann.x, ann.y);
+                } else if (ann.type === 'note') {
+                    const fontSize = ann.fontSize || 12;
+                    ctx.font = `bold ${fontSize}px Arial`;
+                    ctx.fillText("📝 " + ann.text, ann.x, ann.y);
+                }
+            });
+        }
+
+        async function saveAnnotations() {
+            const btn = document.querySelector('button[onclick="saveAnnotations()"]');
+            const originalText = btn.textContent;
+            btn.textContent = "Procesando...";
+            btn.disabled = true;
+
+            try {
+                // 1. Cargar el PDF original de forma robusta (ignorar encriptación para extracción)
+                const bytes = await readPdfBytes(annotState.file);
+
+                // Intentar cargar la contraseña si existe alguna inputada previamente en algún lugar, 
+                // o usar la del estado si la tuviéramos (no la tenemos explícita en annotState, 
+                // pero si el usuario ya lo abrió, probablemente sabemos que 'ignoreEncryption' sirve para copiar).
+                // Para simplificar y asegurar que funcione:
+                const pdfDoc = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true });
+
+                // 2. Crear nuevo PDF
+                const newPdf = await PDFLib.PDFDocument.create();
+
+                // 3. Embeber fuentes estándar
+                const helveticaFont = await newPdf.embedFont(PDFLib.StandardFonts.Helvetica);
+                const helveticaBold = await newPdf.embedFont(PDFLib.StandardFonts.HelveticaBold);
+                const timesFont = await newPdf.embedFont(PDFLib.StandardFonts.TimesRoman);
+                const timesBold = await newPdf.embedFont(PDFLib.StandardFonts.TimesRomanBold);
+                const courierFont = await newPdf.embedFont(PDFLib.StandardFonts.Courier);
+                const courierBold = await newPdf.embedFont(PDFLib.StandardFonts.CourierBold);
+
+                const fontMap = {
+                    'Helvetica': helveticaFont,
+                    'Helvetica-Bold': helveticaBold,
+                    'Times-Roman': timesFont,
+                    'Times-Bold': timesBold,
+                    'Courier': courierFont,
+                    'Courier-Bold': courierBold
+                };
+
+                // 4. Copiar todas las páginas
+                const pageIndices = pdfDoc.getPageIndices();
+
+                // Usar copia en lotes para memoria
+                const copiedPages = await newPdf.copyPages(pdfDoc, pageIndices);
+                copiedPages.forEach(page => newPdf.addPage(page));
+
+                const pages = newPdf.getPages();
+
+                // 5. Aplicar anotaciones
+                annotState.annotations.forEach(ann => {
+                    // Validar página destino
+                    const pageIndex = ann.page - 1;
+                    if (pageIndex < 0 || pageIndex >= pages.length) return;
+
+                    const page = pages[pageIndex];
+                    const { width, height } = page.getSize();
+                    const rotation = page.getRotation().angle;
+
+                    // Colores
+                    const rgb = hexToRgb(ann.color);
+                    const color = PDFLib.rgb(rgb.r, rgb.g, rgb.b);
+
+                    // Definir coordenadas visuales del elemento (Bounding Box)
+                    // ann.x, ann.y son Top-Left en el canvas visual
+                    const vX1 = ann.x;
+                    const vY1 = ann.y;
+                    const vX2 = ann.x + ann.width;
+                    const vY2 = ann.y + ann.height;
+
+                    // Transformar puntos visuales a puntos físicos del PDF
+                    // ann.vWidth y ann.vHeight son las dimensiones del canvas donde se dibujó
+                    const p1 = transformCoordinates(vX1, vY1, ann.vWidth, ann.vHeight, width, height, rotation);
+                    const p2 = transformCoordinates(vX2, vY2, ann.vWidth, ann.vHeight, width, height, rotation);
+
+                    // Calcular rectángulo físico (mínimos y máximos)
+                    // PDF-Lib usa sistema de coordenadas cartesianas estándar (X crece derecha, Y crece arriba)
+                    // Dibuja desde la esquina "Bottom-Left" del rectángulo definido (x, y)
+                    const physX = Math.min(p1.x, p2.x);
+                    const physY = Math.min(p1.y, p2.y);
+                    const physW = Math.abs(p1.x - p2.x);
+                    const physH = Math.abs(p1.y - p2.y);
+
+                    // --- Dibujar según tipo ---
+
+                    if (ann.type === 'highlight') {
+                        page.drawRectangle({
+                            x: physX,
+                            y: physY,
+                            width: physW,
+                            height: physH,
+                            color: color,
+                            opacity: 0.3,
+                        });
+                    } else if (ann.type === 'rectangle') {
+                        page.drawRectangle({
+                            x: physX,
+                            y: physY,
+                            width: physW,
+                            height: physH,
+                            borderColor: color,
+                            borderWidth: 2,
+                        });
+                    } else if (ann.type === 'circle') {
+                        // Elipse centrada en el punto medio del rect físico
+                        const midX = physX + physW / 2;
+                        const midY = physY + physH / 2;
+                        page.drawEllipse({
+                            x: midX,
+                            y: midY,
+                            xScale: physW / 2,
+                            yScale: physH / 2,
+                            borderColor: color,
+                            borderWidth: 2,
+                        });
+                    } else if (ann.type === 'underline') {
+                        // Subrayado visualmente está en la parte inferior del bounding box visual
+                        // Pero dependiendo de la rotación, "abajo" cambia.
+                        // Usaremos la lógica de transform para obtener los puntos de la línea de base.
+
+                        // Línea visual: desde (x, y+h) hasta (x+w, y+h)
+                        const bl = transformCoordinates(vX1, vY2, ann.vWidth, ann.vHeight, width, height, rotation);
+                        const br = transformCoordinates(vX2, vY2, ann.vWidth, ann.vHeight, width, height, rotation);
+
+                        page.drawLine({
+                            start: bl,
+                            end: br,
+                            thickness: 2,
+                            color: color,
+                        });
+                    } else if (ann.type === 'strikethrough') {
+                        // Línea media: desde (x, y+h/2) hasta (x+w, y+h/2)
+                        const midYVisual = vY1 + (ann.height / 2);
+                        const ml = transformCoordinates(vX1, midYVisual, ann.vWidth, ann.vHeight, width, height, rotation);
+                        const mr = transformCoordinates(vX2, midYVisual, ann.vWidth, ann.vHeight, width, height, rotation);
+
+                        page.drawLine({
+                            start: ml,
+                            end: mr,
+                            thickness: 2,
+                            color: color,
+                        });
+                    } else if (ann.type === 'arrow') {
+                        // Flecha tiene puntos específicos x1,y1 -> x2,y2
+                        if (ann.x1 !== undefined) {
+                            const start = transformCoordinates(ann.x1, ann.y1, ann.vWidth, ann.vHeight, width, height, rotation);
+                            const end = transformCoordinates(ann.x2, ann.y2, ann.vWidth, ann.vHeight, width, height, rotation);
+
+                            drawArrowOnPage(page, start, end, color);
+                        }
+                    } else if (ann.type === 'draw') {
+                        // Dibujo a mano alzada: lista de puntos
+                        if (ann.points && ann.points.length > 1) {
+                            for (let i = 0; i < ann.points.length - 1; i++) {
+                                const pt1 = transformCoordinates(ann.points[i].x, ann.points[i].y, ann.vWidth, ann.vHeight, width, height, rotation);
+                                const pt2 = transformCoordinates(ann.points[i + 1].x, ann.points[i + 1].y, ann.vWidth, ann.vHeight, width, height, rotation);
+
+                                page.drawLine({
+                                    start: pt1,
+                                    end: pt2,
+                                    thickness: 2,
+                                    color: color,
+                                });
+                            }
+                        }
+                    } else if (ann.type === 'text' || ann.type === 'note') {
+                        // Texto: posicionar en (x,y) visual que es la base-top-left del texto?
+                        // PDFLib dibuja texto desde la baseline.
+                        // Simplificación: Usar la posición transformada de (x,y)
+
+                        // Ajustar tamaño de fuente según escala
+                        // Escala aproximada basada en el eje Y físico (para mantener altura)
+                        let fontScale = 1;
+                        if (rotation === 0 || rotation === 180) {
+                            fontScale = height / ann.vHeight;
+                        } else {
+                            fontScale = width / ann.vHeight;
+                        }
+
+                        const fontSize = (ann.fontSize || 12) * fontScale;
+                        const font = fontMap[ann.font] || helveticaFont;
+                        // Fix: Standard fonts don't support emojis like 📝. Use text label instead.
+                        const textContent = ann.type === 'note' ? "Nota: " + ann.text : ann.text;
+
+                        // Para texto, p1 es la esquina superior izquierda visual.
+                        // PDFLib espera coordenadas de la esquina inferior izquierda del texto (baseline aprox).
+                        // Ajuste simple: bajar un poco (fontSize) en dirección visual Y.
+
+                        const baselineVisualY = vY1 + (ann.fontSize || 12);
+                        const textPos = transformCoordinates(vX1, baselineVisualY, ann.vWidth, ann.vHeight, width, height, rotation);
+
+                        const textRotation = PDFLib.degrees(-rotation);
+
+                        page.drawText(textContent, {
+                            x: textPos.x,
+                            y: textPos.y,
+                            size: fontSize,
+                            font: font,
+                            color: color,
+                            rotate: textRotation
+                        });
+                    }
+                });
+
+                const pdfBytes = await newPdf.save();
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                const link = document.getElementById('annotateDownload');
+                link.href = url;
+                link.download = "anotado_" + annotState.file.name;
+
+                document.getElementById('annotateResult').style.display = 'block';
+                // alert("PDF anotado guardado correctamente!");
+                closeModal();
+
+            } catch (e) {
+                alert("Error detallado guardando: " + e.message);
+                console.error(e);
+            } finally {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        // --- Helper: Transform Visual Coords (Canvas) to Physical PDF Coords ---
+        function transformCoordinates(vx, vy, vW, vH, pW, pH, rotation) {
+            // Normalizar coordenadas visuales (0 a 1)
+            const nX = vx / vW;
+            const nY = vy / vH;
+
+            let px, py;
+
+            // Mapeo según rotación de la página (en grados CW)
+            // Recordar: PDF coords (0,0) es Bottom-Left. Canvas (0,0) es Top-Left.
+
+            if (rotation === 0) {
+                // Estándar
+                // Visual X -> Physical X
+                // Visual Y (down) -> Physical Y (down from top) => (1-nY)
+                px = nX * pW;
+                py = (1 - nY) * pH;
+            }
+            else if (rotation === 90) {
+                // Rotado 90 CW (Top visual es Left físico)
+                // deducido: px = ny * pW, py = nx * pH
+                px = nY * pW;
+                py = nX * pH;
+            }
+            else if (rotation === 180) {
+                // Rotado 180 (Invertido)
+                // deducido: px = (1-nx)*W, py = ny*H
+                px = (1 - nX) * pW;
+                py = nY * pH;
+            }
+            else if (rotation === 270 || rotation === -90) {
+                // Rotado 270 CW
+                // deducido: px = (1-ny)*W, py = (1-nx)*H
+                px = (1 - nY) * pW;
+                py = (1 - nX) * pH;
+            } else {
+                // Fallback para rotaciones extrañas, tratar como 0
+                px = nX * pW;
+                py = (1 - nY) * pH;
+            }
+
+            return { x: px, y: py };
+        }
+
+        function drawArrowOnPage(page, start, end, color) {
+            // Línea principal
+            page.drawLine({
+                start: start,
+                end: end,
+                thickness: 2,
+                color: color,
+            });
+
+            // Calcular cabecera
+            const angle = Math.atan2(end.y - start.y, end.x - start.x);
+            const headLength = 10; // Unidades PDF (aprox puntos)
+
+            // Puntos de la cabeza
+            const xLeft = end.x - headLength * Math.cos(angle - Math.PI / 6);
+            const yLeft = end.y - headLength * Math.sin(angle - Math.PI / 6);
+            const xRight = end.x - headLength * Math.cos(angle + Math.PI / 6);
+            const yRight = end.y - headLength * Math.sin(angle + Math.PI / 6);
+
+            page.drawLine({ start: end, end: { x: xLeft, y: yLeft }, thickness: 2, color: color });
+            page.drawLine({ start: end, end: { x: xRight, y: yRight }, thickness: 2, color: color });
+        }
+
+        function hexToRgb(hex) {
+            const r = parseInt(hex.substr(1, 2), 16) / 255;
+            const g = parseInt(hex.substr(3, 2), 16) / 255;
+            const b = parseInt(hex.substr(5, 2), 16) / 255;
+            return { r, g, b };
+        }
+
+        // Variable global para almacenar resultado de búsqueda
+        let searchResultData = null;
+
+        // Función para normalizar texto (quitar acentos y convertir a minúsculas)
+        function normalizeText(text) {
+            return text
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, ''); // Eliminar acentos
+        }
+
+        async function searchAndExtract() {
+            const input = document.getElementById('searchFileInput');
+            const query = document.getElementById('searchQuery').value.trim();
+            const logs = document.getElementById('searchLogs');
+            const resultArea = document.getElementById('searchResult');
+            const previewArea = document.getElementById('searchPreview');
+            const btn = document.getElementById('searchBtn');
+            const password = document.getElementById('searchFilePass').value;
+
+            if (!input.files.length) return;
+            if (!query) {
+                alert("Introduce un texto para buscar.");
                 return;
             }
-            if (!startPage || !endPage || startPage > endPage) {
-                alert("Por favor, introduce un rango válido de páginas.");
-                return;
-            }
 
-            const file = pdfFileInput.files[0];
-            const arrayBuffer = await file.arrayBuffer();
-            const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
-            const newPdfDoc = await PDFLib.PDFDocument.create();
+            btn.disabled = true;
+            btn.textContent = "Buscando...";
+            resultArea.style.display = 'none';
+            previewArea.style.display = 'none';
+            logs.textContent = "Cargando documento para búsqueda...";
 
-            for (let i = startPage; i <= endPage; i++) {
-                if (i > pdfDoc.getPageCount()) {
-                    alert("El PDF no tiene tantas páginas.");
+            try {
+                const file = input.files[0];
+                const bytes = await readPdfBytes(file);
+
+                // Normalizar query para búsqueda inteligente
+                const normalizedQuery = normalizeText(query);
+
+                // Identify pages using PDF.js
+                const loadingTask = pdfjsLib.getDocument({ data: bytes, password: password });
+                const pdfJsDoc = await loadingTask.promise;
+
+                const totalPages = pdfJsDoc.numPages;
+                const matchingPages = []; // Array de objetos con info de página
+
+                logs.textContent = `Analizando ${totalPages} páginas...`;
+
+                for (let i = 1; i <= totalPages; i++) {
+                    if (i % 5 === 0) logs.textContent = `Analizando página ${i}/${totalPages}...`;
+
+                    const page = await pdfJsDoc.getPage(i);
+                    const textContent = await page.getTextContent();
+                    const pageText = textContent.items.map(item => item.str).join(' ');
+
+                    // Búsqueda inteligente: sin acentos ni mayúsculas
+                    const normalizedPageText = normalizeText(pageText);
+
+                    if (normalizedPageText.includes(normalizedQuery)) {
+                        // Extraer contexto (primeras palabras donde aparece)
+                        const index = normalizedPageText.indexOf(normalizedQuery);
+                        const contextStart = Math.max(0, index - 30);
+                        const contextEnd = Math.min(pageText.length, index + query.length + 30);
+                        const context = pageText.substring(contextStart, contextEnd).trim();
+
+                        matchingPages.push({
+                            pageNum: i,
+                            index: i - 1, // 0-indexed for pdf-lib
+                            context: context,
+                            selected: true // Por defecto todas seleccionadas
+                        });
+                    }
+                }
+
+                pdfJsDoc.destroy();
+
+                if (matchingPages.length === 0) {
+                    logs.textContent = "No se encontraron coincidencias.";
+                    alert("No se encontró el texto en el documento.");
                     return;
                 }
-                const [copiedPage] = await newPdfDoc.copyPages(pdfDoc, [i - 1]);
-                newPdfDoc.addPage(copiedPage);
+
+                // Guardar datos para extracción posterior
+                searchResultData = {
+                    bytes: bytes,
+                    password: password,
+                    matchingPages: matchingPages
+                };
+
+                // Mostrar preview de páginas encontradas
+                displaySearchResults(matchingPages, query);
+                logs.textContent = `Encontradas ${matchingPages.length} páginas. Revise y confirme la extracción.`;
+
+            } catch (error) {
+                console.error(error);
+                if (error.name === 'PasswordException') {
+                    alert("Contraseña incorrecta.");
+                } else {
+                    alert("Error durante el proceso: " + error.message);
+                }
+                logs.textContent = "Error.";
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "Buscar Páginas";
+            }
+        }
+
+        function displaySearchResults(matchingPages, query) {
+            const previewArea = document.getElementById('searchPreview');
+            const pagesList = document.getElementById('searchPagesList');
+
+            pagesList.innerHTML = '';
+
+            matchingPages.forEach((pageData, idx) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.style.cssText = 'padding: 10px; margin-bottom: 8px; background: white; border: 1px solid var(--border); border-radius: 4px;';
+
+                itemDiv.innerHTML = `
+                    <label style="display: flex; align-items: start; cursor: pointer; gap: 10px;">
+                        <input type="checkbox"
+                               id="searchPage${idx}"
+                               ${pageData.selected ? 'checked' : ''}
+                               onchange="toggleSearchPage(${idx})"
+                               style="margin-top: 3px;">
+                        <div style="flex: 1;">
+                            <strong>Página ${pageData.pageNum}</strong>
+                            <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">
+                                ...${pageData.context}...
+                            </div>
+                        </div>
+                    </label>
+                `;
+
+                pagesList.appendChild(itemDiv);
+            });
+
+            previewArea.style.display = 'block';
+        }
+
+        function toggleSearchPage(idx) {
+            if (searchResultData && searchResultData.matchingPages[idx]) {
+                const checkbox = document.getElementById(`searchPage${idx}`);
+                searchResultData.matchingPages[idx].selected = checkbox.checked;
+            }
+        }
+
+        function cancelSearch() {
+            document.getElementById('searchPreview').style.display = 'none';
+            searchResultData = null;
+        }
+
+        async function extractFoundPages() {
+            if (!searchResultData) return;
+
+            const outputName = document.getElementById('searchOutputName').value || 'busqueda.pdf';
+            const useRasterMode = document.getElementById('searchRasterMode').checked;
+            const logs = document.getElementById('searchLogs');
+            const resultArea = document.getElementById('searchResult');
+            const extractBtn = document.getElementById('extractFoundBtn');
+
+            // Obtener solo las páginas seleccionadas
+            const selectedPages = searchResultData.matchingPages.filter(p => p.selected);
+
+            if (selectedPages.length === 0) {
+                alert("Debe seleccionar al menos una página.");
+                return;
             }
 
-            const pdfBytes = await newPdfDoc.save();
-            const blob = new Blob([pdfBytes], { type: "application/pdf" });
-            extractDownloadLink.href = URL.createObjectURL(blob);
-            extractDownloadLink.download = outputName;
-            extractDownloadLink.style.display = "block";
-            extractDownloadLink.textContent = "Descargar PDF Extraído";
-        });
+            extractBtn.disabled = true;
+            extractBtn.textContent = "Extrayendo...";
+            resultArea.style.display = 'none';
+
+            try {
+                const bytes = searchResultData.bytes;
+                const password = searchResultData.password;
+                const selectedIndices = selectedPages.map(p => p.index);
+
+                logs.textContent = `Extrayendo ${selectedPages.length} páginas...`;
+
+                if (useRasterMode) {
+                    // Modo compatibilidad: renderizar como imágenes
+                    await extractPagesAsImages(bytes, password, selectedIndices, outputName, logs, resultArea);
+                } else {
+                    // Modo normal: copiar páginas
+                    const pdfDoc = await loadPdfWithPasswordFallback(bytes, password);
+                    const newPdf = await PDFLib.PDFDocument.create();
+
+                    const copiedPages = await newPdf.copyPages(pdfDoc, selectedIndices);
+                    copiedPages.forEach(p => newPdf.addPage(p));
+
+                    const pdfBytes = await newPdf.save();
+                    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+
+                    const url = URL.createObjectURL(blob);
+                    const link = document.getElementById('searchDownload');
+                    link.href = url;
+                    link.download = outputName;
+
+                    resultArea.style.display = 'block';
+                    logs.textContent = "¡Proceso terminado exitosamente!";
+                }
+
+                // Ocultar preview
+                document.getElementById('searchPreview').style.display = 'none';
+
+            } catch (error) {
+                console.error(error);
+                alert("Error durante la extracción: " + error.message);
+                logs.textContent = "Error en extracción.";
+            } finally {
+                extractBtn.disabled = false;
+                extractBtn.textContent = "Extraer Páginas Seleccionadas";
+            }
+        }
+
+        async function extractPagesAsImages(bytes, password, pageIndices, outputName, logs, resultArea) {
+            logs.textContent = "Cargando PDF en modo compatibilidad...";
+
+            const loadingTask = pdfjsLib.getDocument({ data: bytes, password: password || undefined });
+            const pdfJsDoc = await loadingTask.promise;
+
+            const newPdf = await PDFLib.PDFDocument.create();
+            const scale = 1.5;
+
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d', { willReadFrequently: false, alpha: false });
+
+            for (let i = 0; i < pageIndices.length; i++) {
+                const pageNum = pageIndices[i] + 1; // pageIndices is 0-indexed
+                logs.textContent = `Renderizando página ${pageNum} (${i + 1}/${pageIndices.length})...`;
+
+                const page = await pdfJsDoc.getPage(pageNum);
+                const viewport = page.getViewport({ scale: scale });
+
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                context.clearRect(0, 0, canvas.width, canvas.height);
+
+                await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+                const imgDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+                const response = await fetch(imgDataUrl);
+                const imgBytes = await response.arrayBuffer();
+
+                const jpegImage = await newPdf.embedJpg(imgBytes);
+                const newPage = newPdf.addPage([viewport.width, viewport.height]);
+
+                newPage.drawImage(jpegImage, {
+                    x: 0,
+                    y: 0,
+                    width: viewport.width,
+                    height: viewport.height,
+                });
+
+                page.cleanup();
+
+                if ((i + 1) % 5 === 0) {
+                    await waitAndClearMemory(30);
+                }
+            }
+
+            canvas.width = 0;
+            canvas.height = 0;
+            pdfJsDoc.destroy();
+
+            logs.textContent = "Guardando PDF...";
+            const pdfBytes = await newPdf.save();
+
+            const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+            const link = document.getElementById('searchDownload');
+            link.href = url;
+            link.download = outputName;
+
+            resultArea.style.display = 'block';
+            logs.textContent = "¡Proceso terminado exitosamente!";
+        }
+
+        // --- CHAPTERS EXTRACTION LOGIC ---
+        let chaptersData = null;
+
+        async function detectChapters() {
+            const input = document.getElementById('chaptersFileInput');
+            const patterns = document.getElementById('chapterPattern').value.trim();
+            const useNumbers = document.getElementById('chapterUseNumbers').checked;
+            const logs = document.getElementById('chaptersLogs');
+            const previewArea = document.getElementById('chaptersPreview');
+            const resultArea = document.getElementById('chaptersResult');
+            const btn = document.getElementById('chaptersBtn');
+            const password = document.getElementById('chaptersFilePass').value;
+
+            if (!input.files.length) return;
+            if (!patterns) {
+                alert("Ingrese al menos un patrón de búsqueda.");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = "Detectando...";
+            previewArea.style.display = 'none';
+            resultArea.style.display = 'none';
+            logs.textContent = "Cargando documento...";
+
+            try {
+                const file = input.files[0];
+                const bytes = await readPdfBytes(file);
+
+                // Convertir patrones a array
+                const patternList = patterns.split(',').map(p => p.trim()).filter(p => p);
+
+                logs.textContent = "Analizando estructura del documento...";
+
+                const loadingTask = pdfjsLib.getDocument({ data: bytes, password: password });
+                const pdfJsDoc = await loadingTask.promise;
+                const totalPages = pdfJsDoc.numPages;
+
+                const chapters = [];
+                logs.textContent = `Buscando capítulos en ${totalPages} páginas...`;
+
+                // Patrón regex para números romanos y arábigos
+                const numberPatterns = useNumbers ?
+                    /(\d+|I{1,3}|IV|V|VI{0,3}|IX|X{1,3}|XI{0,3}|XIV|XV|XVI{0,3}|XIX|XX)/i :
+                    null;
+
+                for (let i = 1; i <= totalPages; i++) {
+                    if (i % 10 === 0) logs.textContent = `Analizando página ${i}/${totalPages}...`;
+
+                    const page = await pdfJsDoc.getPage(i);
+                    const textContent = await page.getTextContent();
+                    const pageText = textContent.items.map(item => item.str).join(' ');
+
+                    // Buscar cada patrón
+                    for (const pattern of patternList) {
+                        const normalizedPattern = normalizeText(pattern);
+                        const normalizedText = normalizeText(pageText);
+
+                        let regex;
+                        if (useNumbers) {
+                            // Buscar patrón seguido de número
+                            regex = new RegExp(normalizedPattern + '\\s*' + numberPatterns.source, 'gi');
+                        } else {
+                            // Buscar solo el patrón
+                            regex = new RegExp(normalizedPattern, 'gi');
+                        }
+
+                        const matches = [...normalizedText.matchAll(regex)];
+
+                        if (matches.length > 0) {
+                            // Extraer el título completo del capítulo
+                            const match = matches[0];
+                            const matchIndex = match.index;
+
+                            // Buscar en texto original (no normalizado) para obtener título real
+                            let titleStart = matchIndex;
+                            let titleEnd = Math.min(pageText.length, matchIndex + 100);
+
+                            // Buscar hasta punto, nueva línea o fin de texto
+                            const titleText = pageText.substring(titleStart, titleEnd);
+                            const endMarkers = ['\n', '.', '  '];
+                            let actualEnd = titleText.length;
+
+                            for (const marker of endMarkers) {
+                                const idx = titleText.indexOf(marker, pattern.length);
+                                if (idx > 0 && idx < actualEnd) {
+                                    actualEnd = idx;
+                                }
+                            }
+
+                            const chapterTitle = pageText.substring(titleStart, titleStart + actualEnd).trim();
+
+                            // Evitar duplicados en la misma página
+                            if (!chapters.find(ch => ch.startPage === i)) {
+                                chapters.push({
+                                    title: chapterTitle,
+                                    startPage: i,
+                                    endPage: null, // Se calculará después
+                                    selected: true
+                                });
+                            }
+                        }
+                    }
+                }
+
+                pdfJsDoc.destroy();
+
+                if (chapters.length === 0) {
+                    logs.textContent = "No se detectaron capítulos.";
+                    alert("No se encontraron capítulos con los patrones especificados.");
+                    return;
+                }
+
+                // Calcular páginas finales
+                for (let i = 0; i < chapters.length; i++) {
+                    if (i < chapters.length - 1) {
+                        chapters[i].endPage = chapters[i + 1].startPage - 1;
+                    } else {
+                        chapters[i].endPage = totalPages;
+                    }
+                }
+
+                // Guardar datos
+                chaptersData = {
+                    bytes: bytes,
+                    password: password,
+                    chapters: chapters,
+                    totalPages: totalPages
+                };
+
+                displayChapters(chapters);
+                logs.textContent = `Detectados ${chapters.length} capítulos. Revise y confirme la extracción.`;
+
+            } catch (error) {
+                console.error(error);
+                alert("Error durante la detección: " + error.message);
+                logs.textContent = "Error.";
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "Detectar Capítulos";
+            }
+        }
+
+        function displayChapters(chapters) {
+            const previewArea = document.getElementById('chaptersPreview');
+            const chaptersList = document.getElementById('chaptersList');
+
+            chaptersList.innerHTML = '';
+
+            chapters.forEach((chapter, idx) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.style.cssText = 'padding: 12px; margin-bottom: 10px; background: white; border: 1px solid var(--border); border-radius: 4px;';
+
+                const pageCount = chapter.endPage - chapter.startPage + 1;
+
+                itemDiv.innerHTML = `
+                    <label style="display: flex; align-items: start; cursor: pointer; gap: 10px;">
+                        <input type="checkbox"
+                               id="chapter${idx}"
+                               ${chapter.selected ? 'checked' : ''}
+                               onchange="toggleChapter(${idx})"
+                               style="margin-top: 3px;">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; margin-bottom: 4px;">
+                                ${chapter.title || 'Capítulo ' + (idx + 1)}
+                            </div>
+                            <div style="font-size: 0.85rem; color: var(--text-muted);">
+                                Páginas ${chapter.startPage} - ${chapter.endPage}
+                                (${pageCount} página${pageCount > 1 ? 's' : ''})
+                            </div>
+                        </div>
+                        <button class="btn"
+                                onclick="event.stopPropagation(); extractSingleChapter(${idx})"
+                                style="padding: 6px 12px; font-size: 0.85rem; width: auto;">
+                            Extraer
+                        </button>
+                    </label>
+                `;
+
+                chaptersList.appendChild(itemDiv);
+            });
+
+            previewArea.style.display = 'block';
+        }
+
+        function toggleChapter(idx) {
+            if (chaptersData && chaptersData.chapters[idx]) {
+                const checkbox = document.getElementById(`chapter${idx}`);
+                chaptersData.chapters[idx].selected = checkbox.checked;
+            }
+        }
+
+        function cancelChapters() {
+            document.getElementById('chaptersPreview').style.display = 'none';
+            chaptersData = null;
+        }
+
+        async function extractSingleChapter(idx) {
+            if (!chaptersData) return;
+
+            const chapter = chaptersData.chapters[idx];
+            const logs = document.getElementById('chaptersLogs');
+
+            try {
+                logs.textContent = `Extrayendo "${chapter.title}"...`;
+
+                const useRasterMode = document.getElementById('chapterRasterMode').checked;
+                const fileName = sanitizeFilename(chapter.title || `Capitulo_${idx + 1}`) + '.pdf';
+
+                await extractChapter(
+                    chaptersData.bytes,
+                    chaptersData.password,
+                    chapter,
+                    fileName,
+                    useRasterMode,
+                    logs
+                );
+
+                logs.textContent = `"${chapter.title}" extraído correctamente.`;
+
+            } catch (error) {
+                console.error(error);
+                alert("Error extrayendo capítulo: " + error.message);
+                logs.textContent = "Error.";
+            }
+        }
+
+        async function extractAllChapters() {
+            if (!chaptersData) return;
+
+            const selectedChapters = chaptersData.chapters.filter(ch => ch.selected);
+
+            if (selectedChapters.length === 0) {
+                alert("Debe seleccionar al menos un capítulo.");
+                return;
+            }
+
+            const logs = document.getElementById('chaptersLogs');
+            const resultArea = document.getElementById('chaptersResult');
+            const linksContainer = document.getElementById('chaptersDownloadLinks');
+            const extractBtn = document.getElementById('extractAllChaptersBtn');
+
+            extractBtn.disabled = true;
+            extractBtn.textContent = "Extrayendo...";
+            resultArea.style.display = 'none';
+            linksContainer.innerHTML = '';
+
+            const useRasterMode = document.getElementById('chapterRasterMode').checked;
+            const downloadLinks = [];
+
+            try {
+                for (let i = 0; i < selectedChapters.length; i++) {
+                    const chapter = selectedChapters[i];
+                    logs.textContent = `Extrayendo capítulo ${i + 1}/${selectedChapters.length}: "${chapter.title}"...`;
+
+                    const fileName = sanitizeFilename(chapter.title || `Capitulo_${i + 1}`) + '.pdf';
+
+                    const url = await extractChapter(
+                        chaptersData.bytes,
+                        chaptersData.password,
+                        chapter,
+                        fileName,
+                        useRasterMode,
+                        logs,
+                        true // returnURL
+                    );
+
+                    downloadLinks.push({ title: chapter.title, url: url, filename: fileName });
+
+                    // Pequeña pausa entre capítulos
+                    await waitAndClearMemory(100);
+                }
+
+                // Mostrar enlaces de descarga
+                linksContainer.innerHTML = '';
+                downloadLinks.forEach(link => {
+                    const linkDiv = document.createElement('div');
+                    linkDiv.style.cssText = 'margin-bottom: 8px;';
+                    linkDiv.innerHTML = `
+                        <a href="${link.url}" download="${link.filename}"
+                           style="color: var(--primary); text-decoration: none; font-weight: 500;">
+                            📄 ${link.title || link.filename}
+                        </a>
+                    `;
+                    linksContainer.appendChild(linkDiv);
+                });
+
+                resultArea.style.display = 'block';
+                document.getElementById('chaptersResultText').textContent =
+                    `¡Éxito! Se han generado ${downloadLinks.length} capítulos. Haga clic en los enlaces para descargar:`;
+                logs.textContent = `Todos los capítulos extraídos correctamente.`;
+
+                // Ocultar preview
+                document.getElementById('chaptersPreview').style.display = 'none';
+
+            } catch (error) {
+                console.error(error);
+                alert("Error durante la extracción: " + error.message);
+                logs.textContent = "Error.";
+            } finally {
+                extractBtn.disabled = false;
+                extractBtn.textContent = "📚 Extraer Todos los Capítulos";
+            }
+        }
+
+        async function extractChapter(bytes, password, chapter, fileName, useRasterMode, logs, returnURL = false) {
+            const startIdx = chapter.startPage - 1; // 0-indexed
+            const endIdx = chapter.endPage - 1;
+            const pageIndices = [];
+
+            for (let i = startIdx; i <= endIdx; i++) {
+                pageIndices.push(i);
+            }
+
+            let pdfBytes;
+
+            if (useRasterMode) {
+                // Modo compatibilidad
+                const loadingTask = pdfjsLib.getDocument({ data: bytes, password: password || undefined });
+                const pdfJsDoc = await loadingTask.promise;
+
+                const newPdf = await PDFLib.PDFDocument.create();
+                const scale = 1.5;
+
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d', { willReadFrequently: false, alpha: false });
+
+                for (let i = 0; i < pageIndices.length; i++) {
+                    const pageNum = pageIndices[i] + 1;
+
+                    const page = await pdfJsDoc.getPage(pageNum);
+                    const viewport = page.getViewport({ scale: scale });
+
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+                    context.clearRect(0, 0, canvas.width, canvas.height);
+
+                    await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+                    const imgDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+                    const response = await fetch(imgDataUrl);
+                    const imgBytes = await response.arrayBuffer();
+
+                    const jpegImage = await newPdf.embedJpg(imgBytes);
+                    const newPage = newPdf.addPage([viewport.width, viewport.height]);
+
+                    newPage.drawImage(jpegImage, {
+                        x: 0,
+                        y: 0,
+                        width: viewport.width,
+                        height: viewport.height,
+                    });
+
+                    page.cleanup();
+                }
+
+                canvas.width = 0;
+                canvas.height = 0;
+                pdfJsDoc.destroy();
+
+                pdfBytes = await newPdf.save();
+
+            } else {
+                // Modo normal
+                const pdfDoc = await loadPdfWithPasswordFallback(bytes, password);
+                const newPdf = await PDFLib.PDFDocument.create();
+
+                const copiedPages = await newPdf.copyPages(pdfDoc, pageIndices);
+                copiedPages.forEach(p => newPdf.addPage(p));
+
+                pdfBytes = await newPdf.save();
+            }
+
+            const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+
+            if (returnURL) {
+                return url;
+            } else {
+                // Descargar inmediatamente
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                a.click();
+                return url;
+            }
+        }
+
+        function sanitizeFilename(filename) {
+            // Eliminar caracteres no válidos para nombres de archivo
+            return filename
+                .replace(/[<>:"/\\|?*]/g, '_')
+                .replace(/\s+/g, '_')
+                .substring(0, 100); // Limitar longitud
+        }
     </script>
+
 </body>
+
 </html>
