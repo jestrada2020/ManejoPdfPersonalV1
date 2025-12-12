@@ -466,6 +466,7 @@
             <button class="tab-btn" onclick="switchTab('media')">Añadir Videos / Audio</button>
             <button class="tab-btn" onclick="switchTab('translate')">Traductor / Lector</button>
             <button class="tab-btn" onclick="switchTab('podcast')">Podcast</button>
+            <button class="tab-btn" onclick="switchTab('tts-podcast')">Texto a Podcast</button>
         </div>
 
         <!-- MERGE TAB -->
@@ -958,133 +959,210 @@
                 <button onclick="changePodcastPage(1)">⏭️</button>
             </div>
         </div>
-    </div>
 
-    <!-- MODAL FOR ANNOTATION -->
-    <div id="annotationModal" class="modal">
-        <div class="modal-content">
-            <span class="close-modal" onclick="closeModal()">&times;</span>
 
-            <div class="toolbar">
-                <!-- ANNOTATION TOOLS -->
-                <div class="toolbar-group" id="annotationTools">
-                    <button class="tool-btn active" onclick="setTool('cursor')" id="btnToolCursor"
-                        title="Cursor (Mover)">🖱️</button>
-                    <button class="tool-btn" onclick="setTool('highlight')" id="btnToolHighlight"
-                        title="Resaltar">🖍️</button>
-                    <button class="tool-btn" onclick="setTool('underline')" id="btnToolUnderline"
-                        title="Subrayar">U̲</button>
-                    <button class="tool-btn" onclick="setTool('strikethrough')" id="btnToolStrike"
-                        title="Tachar">S̶</button>
-                    <button class="tool-btn" onclick="setTool('text')" id="btnToolText" title="Texto">T</button>
-                    <button class="tool-btn" onclick="setTool('note')" id="btnToolNote" title="Nota">📝</button>
-                    <button class="tool-btn" onclick="setTool('arrow')" id="btnToolArrow" title="Flecha">➜</button>
-                    <button class="tool-btn" onclick="setTool('rectangle')" id="btnToolRect"
-                        title="Rectángulo">▭</button>
-                    <button class="tool-btn" onclick="setTool('circle')" id="btnToolCircle" title="Círculo">⭕</button>
-                    <button class="tool-btn" onclick="setTool('draw')" id="btnToolDraw" title="Dibujar">✏️</button>
-                    <button class="tool-btn" onclick="setTool('eraser')" id="btnToolEraser"
-                        title="Borrador (Clic en anotación)">🧹</button>
-                </div>
+        <!-- TTS PODCAST TAB -->
+        <div id="tts-podcast" class="tab-content" style="height: calc(100vh - 160px);">
+            <div style="display: flex; height: 100%;">
+                <!-- Sidebar -->
+                <div class="sidebar-controls">
+                    <h3>Texto a Podcast</h3>
 
-                <!-- MEDIA TOOLS -->
-                <div class="toolbar-group" id="mediaTools" style="display:none;">
-                    <button class="tool-btn active" onclick="setTool('cursor')" id="btnToolCursorMedia"
-                        title="Cursor">🖱️</button>
-                    <button class="tool-btn" onclick="setTool('youtube')" id="btnToolYouTube" title="Video YouTube">📺
-                        Video</button>
-                    <button class="tool-btn" onclick="setTool('audio')" id="btnToolAudio" title="Audio Link">🔊
-                        Audio</button>
-                    <button class="tool-btn" onclick="setTool('link')" id="btnToolLink" title="Enlace Web">🔗
-                        Enlace</button>
-                    <button class="tool-btn" onclick="setTool('eraser')" id="btnToolEraserMedia"
-                        title="Borrador">🧹</button>
-                </div>
-                <div class="toolbar-group">
-                    <label style="margin:0; font-size:0.85rem;">Color:</label>
-                    <input type="color" id="toolColor" value="#ffeb3b" class="color-picker">
-                    <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:2px;">
-                        <button class="tool-btn" onclick="setQuickColor('#ffeb3b')"
-                            style="background:#ffeb3b; width:20px; height:20px; padding:0;" title="Amarillo"></button>
-                        <button class="tool-btn" onclick="setQuickColor('#ff6b6b')"
-                            style="background:#ff6b6b; width:20px; height:20px; padding:0;" title="Rojo"></button>
-                        <button class="tool-btn" onclick="setQuickColor('#4ecdc4')"
-                            style="background:#4ecdc4; width:20px; height:20px; padding:0;" title="Azul"></button>
-                        <button class="tool-btn" onclick="setQuickColor('#95e1d3')"
-                            style="background:#95e1d3; width:20px; height:20px; padding:0;" title="Verde"></button>
-                        <button class="tool-btn" onclick="setQuickColor('#a78bfa')"
-                            style="background:#a78bfa; width:20px; height:20px; padding:0;" title="Morado"></button>
-                        <button class="tool-btn" onclick="setQuickColor('#fb923c')"
-                            style="background:#fb923c; width:20px; height:20px; padding:0;" title="Naranja"></button>
-                        <button class="tool-btn" onclick="setQuickColor('#000000')"
-                            style="background:#000000; width:20px; height:20px; padding:0;" title="Negro"></button>
-                        <button class="tool-btn" onclick="setQuickColor('#ffffff')"
-                            style="background:#ffffff; border:1px solid #ccc; width:20px; height:20px; padding:0;"
-                            title="Blanco"></button>
+                    <!-- File Load -->
+                    <button class="btn" style="width:100%; margin-bottom:10px;"
+                        onclick="document.getElementById('ttsPodcastFileInput').click()">
+                        📂 Cargar PDF
+                    </button>
+                    <input type="file" id="ttsPodcastFileInput" accept="application/pdf" style="display: none;"
+                        onchange="handleTTSPodcastFileBase(this)">
+
+                    <hr>
+
+                    <label><b>1. Texto:</b></label>
+                    <textarea id="ttsInputText" rows="6" style="width:100%; resize:vertical; padding:5px;"
+                        placeholder="Escribe aquí el texto para convertir a audio..."></textarea>
+
+                    <label>Idioma:</label>
+                    <select id="ttsLang" class="form-control">
+                        <option value="es">Español</option>
+                        <option value="en">Inglés</option>
+                        <option value="fr">Francés</option>
+                        <option value="de">Alemán</option>
+                    </select>
+
+                    <button class="btn" onclick="generateTTSAudio()"
+                        style="margin-top:10px; background:#673ab7; color:white;">
+                        🔊 Generar Audio
+                    </button>
+
+                    <div id="ttsAudioPreviewContainer" style="margin-top: 10px; display:none;">
+                        <label>Pre-escucha:</label>
+                        <audio id="ttsAudioPreview" controls style="width: 100%;"></audio>
                     </div>
+
+                    <hr>
+                    <label><b>2. Insertar</b></label>
+                    <p style="font-size:0.8rem; color:#666;">Haz clic en "Colocar" y luego selecciona el lugar en el
+                        PDF.</p>
+                    <button id="btnPlaceTTSPodcast" class="btn" disabled onclick="activateTTSPodcastPlacement()">
+                        📍 Colocar en PDF
+                    </button>
+
+                    <hr>
+                    <button id="btnSaveTTSPodcast" class="btn" disabled onclick="saveTTSPodcastPDF()">
+                        💾 Guardar PDF
+                    </button>
+
                 </div>
-                <div class="toolbar-group">
-                    <label style="margin:0; font-size:0.85rem;">Fuente:</label>
-                    <select id="toolFont" style="font-size:0.85rem; padding:4px; width: 100px;">
-                        <option value="Helvetica">Helvetica</option>
-                        <option value="Helvetica-Bold">Helvetica Bold</option>
-                        <option value="Helvetica-Oblique">Helvetica Italic</option>
-                        <option value="Helvetica-BoldOblique">Helvetica Bold Italic</option>
-                        <option value="Times-Roman">Times</option>
-                        <option value="Times-Bold">Times Bold</option>
-                        <option value="Times-Italic">Times Italic</option>
-                        <option value="Times-BoldItalic">Times Bold Italic</option>
-                        <option value="Courier">Courier</option>
-                        <option value="Courier-Bold">Courier Bold</option>
-                        <option value="Courier-Oblique">Courier Italic</option>
-                        <option value="Courier-BoldOblique">Courier Bold Italic</option>
-                    </select>
-                    <select id="toolSize" style="font-size:0.85rem; padding:4px; width:50px;" title="Tamaño Texto">
-                        <option value="8">8pt</option>
-                        <option value="10">10pt</option>
-                        <option value="12" selected>12pt</option>
-                        <option value="14">14pt</option>
-                        <option value="16">16pt</option>
-                        <option value="18">18pt</option>
-                        <option value="24">24pt</option>
-                        <option value="32">32pt</option>
-                    </select>
-                    <select id="toolWidth" style="font-size:0.85rem; padding:4px; width:70px;" title="Grosor Línea">
-                        <option value="1">Fino</option>
-                        <option value="2" selected>Normal</option>
-                        <option value="4">Grueso</option>
-                        <option value="8">Marcador</option>
-                    </select>
-                </div>
-                <div class="toolbar-group">
-                    <input type="number" id="pageNumberInput" value="1" min="1"
-                        style="width: 50px; text-align: center; padding: 4px; margin: 0 5px;"
-                        onchange="jumpToPage(this.value)">
-                    <span id="pageTotalLabel" style="font-size:0.9rem;">/ 1</span>
-                    <button class="tool-btn" onclick="changePage(1)" title="Página siguiente">⏭️</button>
-                </div>
-                <div class="toolbar-group">
-                    <button class="tool-btn" onclick="undoAnnotation()" title="Deshacer"
-                        style="font-weight:bold;">↶</button>
-                    <button class="tool-btn" onclick="clearPageAnnotations()" title="Limpiar página"
-                        style="color:#ef4444;">🗑️</button>
-                </div>
-                <div class="toolbar-group" style="margin-left:auto;">
-                    <button class="tool-btn" style="background:#dbeafe; color:#1e40af; border-color:#93c5fd;"
-                        onclick="saveAnnotations()">💾 Guardar PDF</button>
-                    <button class="tool-btn" style="background:#fee2e2; color:#ef4444; border-color:#fca5a5;"
-                        onclick="closeModal()">Cerrar</button>
+
+                <!-- Viewer -->
+                <div
+                    style="flex:1; background: #525659; overflow: auto; position: relative; display: flex; justify-content: center; padding: 20px;">
+                    <div id="ttsPodcastWrapper" style="position: relative;">
+                        <canvas id="ttsPodcastCanvas"
+                            style="display:block; border: 1px solid black; cursor: default;"></canvas>
+                    </div>
                 </div>
             </div>
 
-            <div id="pdfViewerContainer">
-                <div id="pageContainer">
-                    <canvas id="pdfCanvas"></canvas>
-                    <canvas id="annotationLayer"></canvas>
+            <!-- Floating Page Controls for this tab -->
+            <div
+                style="position: absolute; bottom: 20px; left: 280px; background: white; padding: 5px 10px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+                <button onclick="changeTTSPodcastPage(-1)">⏮️</button>
+                <span id="ttsPodcastPageLabel">1 / 1</span>
+                <button onclick="changeTTSPodcastPage(1)">⏭️</button>
+            </div>
+        </div>
+
+        <!-- MODAL FOR ANNOTATION -->
+        <div id="annotationModal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal" onclick="closeModal()">&times;</span>
+
+                <div class="toolbar">
+                    <!-- ANNOTATION TOOLS -->
+                    <div class="toolbar-group" id="annotationTools">
+                        <button class="tool-btn active" onclick="setTool('cursor')" id="btnToolCursor"
+                            title="Cursor (Mover)">🖱️</button>
+                        <button class="tool-btn" onclick="setTool('highlight')" id="btnToolHighlight"
+                            title="Resaltar">🖍️</button>
+                        <button class="tool-btn" onclick="setTool('underline')" id="btnToolUnderline"
+                            title="Subrayar">U̲</button>
+                        <button class="tool-btn" onclick="setTool('strikethrough')" id="btnToolStrike"
+                            title="Tachar">S̶</button>
+                        <button class="tool-btn" onclick="setTool('text')" id="btnToolText" title="Texto">T</button>
+                        <button class="tool-btn" onclick="setTool('note')" id="btnToolNote" title="Nota">📝</button>
+                        <button class="tool-btn" onclick="setTool('arrow')" id="btnToolArrow" title="Flecha">➜</button>
+                        <button class="tool-btn" onclick="setTool('rectangle')" id="btnToolRect"
+                            title="Rectángulo">▭</button>
+                        <button class="tool-btn" onclick="setTool('circle')" id="btnToolCircle"
+                            title="Círculo">⭕</button>
+                        <button class="tool-btn" onclick="setTool('draw')" id="btnToolDraw" title="Dibujar">✏️</button>
+                        <button class="tool-btn" onclick="setTool('eraser')" id="btnToolEraser"
+                            title="Borrador (Clic en anotación)">🧹</button>
+                    </div>
+
+                    <!-- MEDIA TOOLS -->
+                    <div class="toolbar-group" id="mediaTools" style="display:none;">
+                        <button class="tool-btn active" onclick="setTool('cursor')" id="btnToolCursorMedia"
+                            title="Cursor">🖱️</button>
+                        <button class="tool-btn" onclick="setTool('youtube')" id="btnToolYouTube"
+                            title="Video YouTube">📺
+                            Video</button>
+                        <button class="tool-btn" onclick="setTool('audio')" id="btnToolAudio" title="Audio Link">🔊
+                            Audio</button>
+                        <button class="tool-btn" onclick="setTool('link')" id="btnToolLink" title="Enlace Web">🔗
+                            Enlace</button>
+                        <button class="tool-btn" onclick="setTool('eraser')" id="btnToolEraserMedia"
+                            title="Borrador">🧹</button>
+                    </div>
+                    <div class="toolbar-group">
+                        <label style="margin:0; font-size:0.85rem;">Color:</label>
+                        <input type="color" id="toolColor" value="#ffeb3b" class="color-picker">
+                        <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:2px;">
+                            <button class="tool-btn" onclick="setQuickColor('#ffeb3b')"
+                                style="background:#ffeb3b; width:20px; height:20px; padding:0;"
+                                title="Amarillo"></button>
+                            <button class="tool-btn" onclick="setQuickColor('#ff6b6b')"
+                                style="background:#ff6b6b; width:20px; height:20px; padding:0;" title="Rojo"></button>
+                            <button class="tool-btn" onclick="setQuickColor('#4ecdc4')"
+                                style="background:#4ecdc4; width:20px; height:20px; padding:0;" title="Azul"></button>
+                            <button class="tool-btn" onclick="setQuickColor('#95e1d3')"
+                                style="background:#95e1d3; width:20px; height:20px; padding:0;" title="Verde"></button>
+                            <button class="tool-btn" onclick="setQuickColor('#a78bfa')"
+                                style="background:#a78bfa; width:20px; height:20px; padding:0;" title="Morado"></button>
+                            <button class="tool-btn" onclick="setQuickColor('#fb923c')"
+                                style="background:#fb923c; width:20px; height:20px; padding:0;"
+                                title="Naranja"></button>
+                            <button class="tool-btn" onclick="setQuickColor('#000000')"
+                                style="background:#000000; width:20px; height:20px; padding:0;" title="Negro"></button>
+                            <button class="tool-btn" onclick="setQuickColor('#ffffff')"
+                                style="background:#ffffff; border:1px solid #ccc; width:20px; height:20px; padding:0;"
+                                title="Blanco"></button>
+                        </div>
+                    </div>
+                    <div class="toolbar-group">
+                        <label style="margin:0; font-size:0.85rem;">Fuente:</label>
+                        <select id="toolFont" style="font-size:0.85rem; padding:4px; width: 100px;">
+                            <option value="Helvetica">Helvetica</option>
+                            <option value="Helvetica-Bold">Helvetica Bold</option>
+                            <option value="Helvetica-Oblique">Helvetica Italic</option>
+                            <option value="Helvetica-BoldOblique">Helvetica Bold Italic</option>
+                            <option value="Times-Roman">Times</option>
+                            <option value="Times-Bold">Times Bold</option>
+                            <option value="Times-Italic">Times Italic</option>
+                            <option value="Times-BoldItalic">Times Bold Italic</option>
+                            <option value="Courier">Courier</option>
+                            <option value="Courier-Bold">Courier Bold</option>
+                            <option value="Courier-Oblique">Courier Italic</option>
+                            <option value="Courier-BoldOblique">Courier Bold Italic</option>
+                        </select>
+                        <select id="toolSize" style="font-size:0.85rem; padding:4px; width:50px;" title="Tamaño Texto">
+                            <option value="8">8pt</option>
+                            <option value="10">10pt</option>
+                            <option value="12" selected>12pt</option>
+                            <option value="14">14pt</option>
+                            <option value="16">16pt</option>
+                            <option value="18">18pt</option>
+                            <option value="24">24pt</option>
+                            <option value="32">32pt</option>
+                        </select>
+                        <select id="toolWidth" style="font-size:0.85rem; padding:4px; width:70px;" title="Grosor Línea">
+                            <option value="1">Fino</option>
+                            <option value="2" selected>Normal</option>
+                            <option value="4">Grueso</option>
+                            <option value="8">Marcador</option>
+                        </select>
+                    </div>
+                    <div class="toolbar-group">
+                        <input type="number" id="pageNumberInput" value="1" min="1"
+                            style="width: 50px; text-align: center; padding: 4px; margin: 0 5px;"
+                            onchange="jumpToPage(this.value)">
+                        <span id="pageTotalLabel" style="font-size:0.9rem;">/ 1</span>
+                        <button class="tool-btn" onclick="changePage(1)" title="Página siguiente">⏭️</button>
+                    </div>
+                    <div class="toolbar-group">
+                        <button class="tool-btn" onclick="undoAnnotation()" title="Deshacer"
+                            style="font-weight:bold;">↶</button>
+                        <button class="tool-btn" onclick="clearPageAnnotations()" title="Limpiar página"
+                            style="color:#ef4444;">🗑️</button>
+                    </div>
+                    <div class="toolbar-group" style="margin-left:auto;">
+                        <button class="tool-btn" style="background:#dbeafe; color:#1e40af; border-color:#93c5fd;"
+                            onclick="saveAnnotations()">💾 Guardar PDF</button>
+                        <button class="tool-btn" style="background:#fee2e2; color:#ef4444; border-color:#fca5a5;"
+                            onclick="closeModal()">Cerrar</button>
+                    </div>
+                </div>
+
+                <div id="pdfViewerContainer">
+                    <div id="pageContainer">
+                        <canvas id="pdfCanvas"></canvas>
+                        <canvas id="annotationLayer"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
     </div>
     </div>
 
@@ -1111,6 +1189,7 @@
             if (tabId === 'media') buttons[6].classList.add('active');
             if (tabId === 'translate') buttons[7].classList.add('active');
             if (tabId === 'podcast') buttons[8].classList.add('active');
+            if (tabId === 'tts-podcast') buttons[9].classList.add('active');
         }
 
         // --- Helper Functions ---
@@ -3540,38 +3619,58 @@
                     reader.readAsArrayBuffer(podcastState.audioBlob);
                 });
 
-                const audioName = "podcast_recording.webm"; // or infer ext
-                await pdfDoc.attach(audioBytes, audioName, {
-                    mimeType: 'audio/webm',
-                    description: 'Podcast grabado',
-                    creationDate: new Date(),
-                    modificationDate: new Date(),
+                // 2. Embed Audio File Stream
+                const audioRef = pdfDoc.context.register(
+                    pdfDoc.context.flateStream(audioBytes, {
+                        Type: 'EmbeddedFile',
+                        Subtype: 'audio/webm',
+                        Params: {
+                            Size: audioBytes.length,
+                            CreationDate: new Date(),
+                        },
+                    })
+                );
+
+                const fileSpecHash = new Uint8Array(16); // Placeholder hash
+                const fileSpecDict = pdfDoc.context.obj({
+                    Type: 'Filespec',
+                    F: 'podcast_recording.webm',
+                    EF: { F: audioRef },
                 });
 
-                // 3. Draw Marker
+                // 3. Create FileAttachment Annotation
                 const page = pdfDoc.getPages()[podcastState.marker.page - 1];
                 const { width, height } = page.getSize();
-
-                // Transform Coords (Canvas -> PDF)
-                // Reusing transform logic or implementing simple version for this tab
-                // scale = 1.2
-                // canvasY is top-down, PDF is bottom-up
-                // x = x / scale
-                // y = height - (y / scale)
 
                 const pdfX = podcastState.marker.x / podcastState.scale;
                 const pdfY = height - (podcastState.marker.y / podcastState.scale);
 
-                page.drawText('🎙️', {
-                    x: pdfX - 15, // center approx
-                    y: pdfY,
-                    size: 30,
-                    color: PDFLib.rgb(1, 0, 0)
+                const annotInfo = pdfDoc.context.obj({
+                    Type: 'Annot',
+                    Subtype: 'FileAttachment',
+                    Rect: [pdfX, pdfY - 20, pdfX + 20, pdfY], // 20x20 icon
+                    FS: fileSpecDict,
+                    Name: 'PushPin', // Standard icon for FileAttachment
+                    T: 'Podcast Grabado',
+                    Contents: 'Haz clic para escuchar el podcast grabado.',
+                    C: [1, 0, 0] // Red Color
                 });
-                page.drawText('CLICK (Ver Adjuntos)', {
-                    x: pdfX - 40,
-                    y: pdfY - 15,
-                    size: 10,
+
+                const annotRef = pdfDoc.context.register(annotInfo);
+                page.node.set(PDFLib.PDFName.of('Annots'), pdfDoc.context.obj([annotRef]));
+
+                // 4. Draw Visual Marker (Backup/Visibility)
+                page.drawCircle({
+                    x: pdfX + 10, // Center of 20x20 rect
+                    y: pdfY - 10,
+                    size: 15,
+                    color: PDFLib.rgb(1, 0, 0),
+                    opacity: 0.3,
+                });
+                page.drawText('PODCAST', {
+                    x: pdfX - 10,
+                    y: pdfY - 25,
+                    size: 9,
                     color: PDFLib.rgb(1, 0, 0)
                 });
 
@@ -3593,7 +3692,258 @@
                 btn.disabled = false;
             }
         }
+
+        // --- TTS PODCAST LOGIC ---
+        let ttsState = {
+            pdfDoc: null,
+            file: null,
+            totalPages: 0,
+            currentPage: 1,
+            scale: 1.2,
+            audioBlob: null,
+            audioUrl: null,
+            placementMode: false,
+            marker: null
+        };
+
+        async function handleTTSPodcastFileBase(input) {
+            if (!input.files.length) return;
+            ttsState.file = input.files[0];
+            const bytes = await readPdfBytes(ttsState.file);
+            const loadingTask = pdfjsLib.getDocument({ data: bytes });
+            ttsState.pdfDoc = await loadingTask.promise;
+            ttsState.totalPages = ttsState.pdfDoc.numPages;
+            ttsState.currentPage = 1;
+            renderTTSPodcastPage(1);
+
+            // Add click listener
+            const canvas = document.getElementById('ttsPodcastCanvas');
+            canvas.addEventListener('click', handleTTSPodcastCanvasClick);
+        }
+
+        async function changeTTSPodcastPage(delta) {
+            if (!ttsState.pdfDoc) return;
+            const newPage = ttsState.currentPage + delta;
+            if (newPage >= 1 && newPage <= ttsState.totalPages) {
+                ttsState.currentPage = newPage;
+                renderTTSPodcastPage(newPage);
+            }
+        }
+
+        async function renderTTSPodcastPage(pageNum) {
+            if (!ttsState.pdfDoc) return;
+            document.getElementById('ttsPodcastPageLabel').textContent = `${pageNum} / ${ttsState.totalPages}`;
+
+            const page = await ttsState.pdfDoc.getPage(pageNum);
+            const viewport = page.getViewport({ scale: ttsState.scale });
+            const canvas = document.getElementById('ttsPodcastCanvas');
+            const context = canvas.getContext('2d');
+
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+
+            await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+            // Draw marker if exists on this page
+            if (ttsState.marker && ttsState.marker.page === pageNum) {
+                context.font = "30px Arial";
+                context.fillText("🎙️", ttsState.marker.x - 15, ttsState.marker.y);
+            }
+        }
+
+        function handleTTSPodcastCanvasClick(e) {
+            if (!ttsState.placementMode) return;
+
+            const rect = e.target.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            ttsState.marker = {
+                page: ttsState.currentPage,
+                x: x,
+                y: y
+            };
+
+            ttsState.placementMode = false;
+            e.target.style.cursor = 'default';
+            alert("Ubicación seleccionada. Ahora puedes guardar.");
+            document.getElementById('btnSaveTTSPodcast').disabled = false;
+
+            renderTTSPodcastPage(ttsState.currentPage);
+        }
+
+        async function generateTTSAudio() {
+            const text = document.getElementById('ttsInputText').value.trim();
+            const lang = document.getElementById('ttsLang').value;
+
+            if (!text) {
+                alert("Por favor escribe algún texto.");
+                return;
+            }
+
+            // Function to split text into chunks
+            function chunkText(str, maxLength) {
+                const words = str.split(' ');
+                const chunks = [];
+                let currentChunk = '';
+
+                words.forEach(word => {
+                    if ((currentChunk + word).length < maxLength) {
+                        currentChunk += (currentChunk ? ' ' : '') + word;
+                    } else {
+                        chunks.push(currentChunk);
+                        currentChunk = word;
+                    }
+                });
+                if (currentChunk) chunks.push(currentChunk);
+                return chunks;
+            }
+
+            const chunks = chunkText(text, 180); // < 200 chars for safety
+            const audioBlobs = [];
+            const btn = document.querySelector('[onclick="generateTTSAudio()"]');
+            const originalText = btn.textContent;
+
+            btn.disabled = true;
+
+            try {
+                for (let i = 0; i < chunks.length; i++) {
+                    btn.textContent = `Generando ${i + 1}/${chunks.length}...`;
+                    const chunk = chunks[i];
+                    // Google TTS API via CORS Proxy
+                    const googleUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(chunk)}&tl=${lang}&client=tw-ob`;
+                    const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(googleUrl)}`;
+
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error(`Error en el segmento ${i + 1}`);
+                    const blob = await response.blob();
+                    audioBlobs.push(blob);
+                }
+
+                // Concatenate blobs (simple concatenation works for many MP3 streams)
+                const finalBlob = new Blob(audioBlobs, { type: 'audio/mpeg' });
+
+                ttsState.audioBlob = finalBlob;
+                ttsState.audioUrl = URL.createObjectURL(finalBlob);
+
+                const audio = document.getElementById('ttsAudioPreview');
+                audio.src = ttsState.audioUrl;
+                document.getElementById('ttsAudioPreviewContainer').style.display = 'block';
+
+                document.getElementById('btnPlaceTTSPodcast').disabled = false;
+                alert("Audio generado correctamente. Escúchalo y luego colócalo en el PDF.");
+
+            } catch (e) {
+                console.error(e);
+                alert("Error generando audio: " + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
+        }
+
+        function activateTTSPodcastPlacement() {
+            if (!ttsState.pdfDoc) {
+                alert("Carga un PDF primero.");
+                return;
+            }
+            ttsState.placementMode = true;
+            document.getElementById('ttsPodcastCanvas').style.cursor = 'crosshair';
+            alert("Haz clic en la página del PDF donde quieras el icono.");
+        }
+
+        async function saveTTSPodcastPDF() {
+            if (!ttsState.audioBlob || !ttsState.marker) return;
+            const btn = document.getElementById('btnSaveTTSPodcast');
+            btn.textContent = "Procesando...";
+            btn.disabled = true;
+
+            try {
+                const input = document.getElementById('ttsPodcastFileInput');
+                const bytes = await readPdfBytes(input.files[0]);
+                const pdfDoc = await PDFLib.PDFDocument.load(bytes);
+
+                const audioBytes = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(new Uint8Array(reader.result));
+                    reader.readAsArrayBuffer(ttsState.audioBlob);
+                });
+
+                // 2. Embed Audio File Stream
+                const audioRef = pdfDoc.context.register(
+                    pdfDoc.context.flateStream(audioBytes, {
+                        Type: 'EmbeddedFile',
+                        Subtype: 'audio/mpeg',
+                        Params: {
+                            Size: audioBytes.length,
+                            CreationDate: new Date(),
+                        },
+                    })
+                );
+
+                const fileSpecDict = pdfDoc.context.obj({
+                    Type: 'Filespec',
+                    F: 'podcast_tts.mp3',
+                    EF: { F: audioRef },
+                });
+
+                // 3. Create FileAttachment Annotation
+                const page = pdfDoc.getPages()[ttsState.marker.page - 1];
+                const { width, height } = page.getSize();
+
+                const pdfX = ttsState.marker.x / ttsState.scale;
+                const pdfY = height - (ttsState.marker.y / ttsState.scale);
+
+                const annotInfo = pdfDoc.context.obj({
+                    Type: 'Annot',
+                    Subtype: 'FileAttachment',
+                    Rect: [pdfX, pdfY - 20, pdfX + 20, pdfY], // 20x20 icon
+                    FS: fileSpecDict,
+                    Name: 'PushPin', // Standard icon for FileAttachment
+                    T: 'Podcast TTS',
+                    Contents: 'Haz clic para escuchar el podcast generado.',
+                    C: [0, 0, 1] // Blue Color
+                });
+
+                const annotRef = pdfDoc.context.register(annotInfo);
+                page.node.set(PDFLib.PDFName.of('Annots'), pdfDoc.context.obj([annotRef]));
+
+                // 4. Draw Visual Marker (Backup/Visibility)
+                page.drawCircle({
+                    x: pdfX + 10,
+                    y: pdfY - 10,
+                    size: 15,
+                    color: PDFLib.rgb(0, 0, 1),
+                    opacity: 0.3,
+                });
+                page.drawText('PODCAST TTS', {
+                    x: pdfX - 20,
+                    y: pdfY - 25,
+                    size: 9,
+                    color: PDFLib.rgb(0, 0, 1)
+                });
+
+                const pdfBytes = await pdfDoc.save();
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = "podcast_tts_doc.pdf";
+                a.click();
+
+                alert("PDF guardado correctamente.");
+
+            } catch (e) {
+                console.error(e);
+                alert("Error guardando PDF: " + e.message);
+            } finally {
+                btn.textContent = "💾 Guardar PDF";
+                btn.disabled = false;
+            }
+        }
     </script>
+
 </body>
 
 </html>
