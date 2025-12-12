@@ -393,6 +393,59 @@
             background: #525659;
             margin-top: 10px;
         }
+
+        .textLayer {
+            position: absolute;
+            left: 0;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+            opacity: 0.2;
+            line-height: 1.0;
+        }
+
+        .textLayer>span {
+            color: transparent;
+            position: absolute;
+            white-space: pre;
+            cursor: text;
+            transform-origin: 0% 0%;
+        }
+
+        .textLayer ::selection {
+            background: rgba(0, 0, 255, 1);
+            color: transparent;
+        }
+
+        .sidebar-controls {
+            width: 250px;
+            background: #f1f1f1;
+            padding: 15px;
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .recording-active {
+            animation: pulse-red 2s infinite;
+            background-color: #ffcccc;
+        }
+
+        @keyframes pulse-red {
+            0% {
+                box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 10px rgba(255, 0, 0, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(255, 0, 0, 0);
+            }
+        }
     </style>
 </head>
 
@@ -410,6 +463,10 @@
             <button class="tab-btn" onclick="switchTab('chapters')">Extracción de Capítulos</button>
             <button class="tab-btn" onclick="switchTab('unlock')">Desbloquear PDF</button>
             <button class="tab-btn" onclick="switchTab('annotate')">Anotar / Revisar</button>
+            <button class="tab-btn" onclick="switchTab('annotate')">Anotar / Revisar</button>
+            <button class="tab-btn" onclick="switchTab('media')">Añadir Videos / Audio</button>
+            <button class="tab-btn" onclick="switchTab('translate')">Traductor / Lector</button>
+            <button class="tab-btn" onclick="switchTab('podcast')">Podcast</button>
         </div>
 
         <!-- MERGE TAB -->
@@ -724,6 +781,184 @@
                 ¡Éxito! <a id="annotateDownload" href="#" download>Descargar PDF Anotado</a>
             </div>
         </div>
+
+        <!-- MEDIA TAB -->
+        <div id="media" class="tab-content">
+            <div class="form-group"
+                style="text-align: center; padding: 20px; background: white; border: 2px dashed var(--border); border-radius: 8px;">
+                <label style="font-size: 1.1rem; margin-bottom: 10px; display:block;">1. Seleccionar Archivo PDF</label>
+
+                <input type="file" id="mediaFileInput" accept="application/pdf" style="display: none;"
+                    onchange="handleSingleFileSelect('media')">
+
+                <button class="btn" style="max-width: 250px; margin: 0 auto;"
+                    onclick="document.getElementById('mediaFileInput').click()">
+                    📂 Cargar PDF (Multimedia)
+                </button>
+
+                <div id="mediaFileInfo"
+                    style="display:none; margin-top: 15px; padding: 10px; border: 1px solid var(--border); border-radius: 4px; text-align: left;">
+                    <span id="mediaFileName" style="font-weight:bold;"></span>
+                </div>
+            </div>
+
+            <button id="mediaBtn" class="btn" disabled onclick="startAnnotation('media')">
+                🎬 Añadir Multimedia
+            </button>
+
+            <div id="mediaResult" class="result-area">
+                ¡Éxito! <a id="mediaDownload" href="#" download>Descargar PDF Multimedia</a>
+            </div>
+        </div>
+
+        <!-- TRANSLATE / READER TAB -->
+        <div id="translate" class="tab-content" style="height: calc(100vh - 160px);">
+            <div style="display: flex; height: 100%;">
+                <!-- Sidebar -->
+                <div class="sidebar-controls">
+                    <h3>Traductor / Lector</h3>
+
+                    <button class="btn" style="width:100%; margin-bottom:10px;"
+                        onclick="document.getElementById('translateFileInput').click()">
+                        📂 Cargar PDF
+                    </button>
+                    <input type="file" id="translateFileInput" accept="application/pdf" style="display: none;"
+                        onchange="handleTranslateFileBase(this)">
+
+                    <hr>
+
+                    <label><b>Zoom / Vista:</b></label>
+                    <div style="display:flex; gap:5px; margin-bottom: 10px;">
+                        <button class="btn" style="flex:1; font-size: 0.8rem;" onclick="setTranslateZoom('fit')">Ajustar
+                            Ancho</button>
+                        <button class="btn" style="width: 30px;" onclick="changeTranslateZoom(0.2)">+</button>
+                        <button class="btn" style="width: 30px;" onclick="changeTranslateZoom(-0.2)">-</button>
+                    </div>
+
+                    <label><b>1. Traducción</b></label>
+                    <label>Idioma destino:</label>
+                    <select id="transLang" class="form-control">
+                        <option value="es">Español</option>
+                        <option value="en">Inglés</option>
+                        <option value="fr">Francés</option>
+                        <option value="de">Alemán</option>
+                        <option value="it">Italiano</option>
+                        <option value="pt">Portugués</option>
+                        <option value="zh-CN">Chino</option>
+                        <option value="ja">Japonés</option>
+                    </select>
+                    <button class="btn" onclick="translateSelection()">Traducir Selección</button>
+
+                    <hr>
+
+                    <label><b>2. Lectura (TTS)</b></label>
+                    <label>Voz:</label>
+                    <select id="ttsVoice" class="form-control" onchange="previewVoice()">
+                        <option value="">Cargando voces...</option>
+                    </select>
+
+                    <label>Velocidad:</label>
+                    <input type="range" id="ttsRate" min="0.5" max="2" step="0.1" value="1">
+
+                    <div style="display:flex; gap:5px; margin-top:5px;">
+                        <button class="btn" onclick="speakSelection()" style="flex:1;">▶️ Leer</button>
+                        <button class="btn" onclick="stopSpeech()" style="flex:1;">⏹️ Parar</button>
+                    </div>
+                </div>
+
+                <!-- Viewer -->
+                <div
+                    style="flex:1; background: #525659; overflow: auto; position: relative; display: flex; justify-content: center; padding: 20px;">
+                    <div id="translateWrapper" style="position: relative;">
+                        <canvas id="translateCanvas" style="display:block; border: 1px solid black;"></canvas>
+                        <div id="textLayer" class="textLayer"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Floating Page Controls for this tab -->
+            <div
+                style="position: absolute; bottom: 20px; left: 280px; background: white; padding: 5px 10px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+                <button onclick="changeTranslatePage(-1)">⏮️</button>
+                <span id="transPageLabel">1 / 1</span>
+                <button onclick="changeTranslatePage(1)">⏭️</button>
+            </div>
+        </div>
+
+        <!-- PODCAST TAB -->
+        <div id="podcast" class="tab-content" style="height: calc(100vh - 160px);">
+            <div style="display: flex; height: 100%;">
+                <!-- Sidebar -->
+                <div class="sidebar-controls">
+                    <h3>Podcast Studio</h3>
+
+                    <!-- File Load -->
+                    <button class="btn" style="width:100%; margin-bottom:10px;"
+                        onclick="document.getElementById('podcastFileInput').click()">
+                        📂 Cargar PDF
+                    </button>
+                    <input type="file" id="podcastFileInput" accept="application/pdf" style="display: none;"
+                        onchange="handlePodcastFileBase(this)">
+
+                    <hr>
+
+                    <label><b>1. Grabadora</b></label>
+                    <div
+                        style="text-align:center; border: 1px solid #ccc; padding: 10px; border-radius: 5px; background: white;">
+                        <canvas id="audioVisualizer" width="200" height="50"
+                            style="width:100%; height:50px; background:#222; margin-bottom:5px;"></canvas>
+                        <div id="recordTimer" style="font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;">00:00
+                        </div>
+
+                        <div style="display:flex; gap:5px; justify-content: center;">
+                            <button id="btnRecordStart" class="btn" onclick="startRecording()"
+                                style="background: #d32f2f; color: white;">🔴 Grabar</button>
+                            <button id="btnRecordStop" class="btn" onclick="stopRecording()" disabled>⏹️ Parar</button>
+                        </div>
+                    </div>
+
+                    <div id="audioPreviewContainer" style="margin-top: 10px; display:none;">
+                        <label>Pre-escucha:</label>
+                        <audio id="audioPreview" controls style="width: 100%;"></audio>
+                        <button class="btn" onclick="useRecordedAudio()"
+                            style="width:100%; margin-top:5px; background:#4CAF50; color:white;">✅ Usar Audio</button>
+                    </div>
+
+                    <hr>
+                    <label><b>O subir archivo:</b></label>
+                    <input type="file" id="uploadAudioInput" accept="audio/*" onchange="handleAudioUpload(this)">
+
+                    <hr>
+                    <label><b>2. Insertar</b></label>
+                    <p style="font-size:0.8rem; color:#666;">El audio se adjuntará al PDF. Haz clic en "Colocar" y luego
+                        en la página para añadir el icono.</p>
+                    <button id="btnPlacePodcast" class="btn" disabled onclick="activatePodcastPlacement()">📍 Colocar en
+                        PDF</button>
+
+                    <hr>
+                    <button id="btnSavePodcast" class="btn" disabled onclick="savePodcastPDF()">💾 Guardar PDF</button>
+
+                </div>
+
+                <!-- Viewer -->
+                <div
+                    style="flex:1; background: #525659; overflow: auto; position: relative; display: flex; justify-content: center; padding: 20px;">
+                    <div id="podcastWrapper" style="position: relative;">
+                        <canvas id="podcastCanvas"
+                            style="display:block; border: 1px solid black; cursor: default;"></canvas>
+                        <!-- No overlay needed for placement, standard canvas events -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Floating Page Controls for this tab -->
+            <div
+                style="position: absolute; bottom: 20px; left: 280px; background: white; padding: 5px 10px; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+                <button onclick="changePodcastPage(-1)">⏮️</button>
+                <span id="podcastPageLabel">1 / 1</span>
+                <button onclick="changePodcastPage(1)">⏭️</button>
+            </div>
+        </div>
     </div>
 
     <!-- MODAL FOR ANNOTATION -->
@@ -732,7 +967,8 @@
             <span class="close-modal" onclick="closeModal()">&times;</span>
 
             <div class="toolbar">
-                <div class="toolbar-group">
+                <!-- ANNOTATION TOOLS -->
+                <div class="toolbar-group" id="annotationTools">
                     <button class="tool-btn active" onclick="setTool('cursor')" id="btnToolCursor"
                         title="Cursor (Mover)">🖱️</button>
                     <button class="tool-btn" onclick="setTool('highlight')" id="btnToolHighlight"
@@ -748,30 +984,63 @@
                         title="Rectángulo">▭</button>
                     <button class="tool-btn" onclick="setTool('circle')" id="btnToolCircle" title="Círculo">⭕</button>
                     <button class="tool-btn" onclick="setTool('draw')" id="btnToolDraw" title="Dibujar">✏️</button>
+                    <button class="tool-btn" onclick="setTool('eraser')" id="btnToolEraser"
+                        title="Borrador (Clic en anotación)">🧹</button>
+                </div>
+
+                <!-- MEDIA TOOLS -->
+                <div class="toolbar-group" id="mediaTools" style="display:none;">
+                    <button class="tool-btn active" onclick="setTool('cursor')" id="btnToolCursorMedia"
+                        title="Cursor">🖱️</button>
+                    <button class="tool-btn" onclick="setTool('youtube')" id="btnToolYouTube" title="Video YouTube">📺
+                        Video</button>
+                    <button class="tool-btn" onclick="setTool('audio')" id="btnToolAudio" title="Audio Link">🔊
+                        Audio</button>
+                    <button class="tool-btn" onclick="setTool('link')" id="btnToolLink" title="Enlace Web">🔗
+                        Enlace</button>
+                    <button class="tool-btn" onclick="setTool('eraser')" id="btnToolEraserMedia"
+                        title="Borrador">🧹</button>
                 </div>
                 <div class="toolbar-group">
                     <label style="margin:0; font-size:0.85rem;">Color:</label>
                     <input type="color" id="toolColor" value="#ffeb3b" class="color-picker">
-                    <button class="tool-btn" onclick="setQuickColor('#ffeb3b')" style="background:#ffeb3b; width:25px;"
-                        title="Amarillo"></button>
-                    <button class="tool-btn" onclick="setQuickColor('#ff6b6b')" style="background:#ff6b6b; width:25px;"
-                        title="Rojo"></button>
-                    <button class="tool-btn" onclick="setQuickColor('#4ecdc4')" style="background:#4ecdc4; width:25px;"
-                        title="Azul"></button>
-                    <button class="tool-btn" onclick="setQuickColor('#95e1d3')" style="background:#95e1d3; width:25px;"
-                        title="Verde"></button>
+                    <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:2px;">
+                        <button class="tool-btn" onclick="setQuickColor('#ffeb3b')"
+                            style="background:#ffeb3b; width:20px; height:20px; padding:0;" title="Amarillo"></button>
+                        <button class="tool-btn" onclick="setQuickColor('#ff6b6b')"
+                            style="background:#ff6b6b; width:20px; height:20px; padding:0;" title="Rojo"></button>
+                        <button class="tool-btn" onclick="setQuickColor('#4ecdc4')"
+                            style="background:#4ecdc4; width:20px; height:20px; padding:0;" title="Azul"></button>
+                        <button class="tool-btn" onclick="setQuickColor('#95e1d3')"
+                            style="background:#95e1d3; width:20px; height:20px; padding:0;" title="Verde"></button>
+                        <button class="tool-btn" onclick="setQuickColor('#a78bfa')"
+                            style="background:#a78bfa; width:20px; height:20px; padding:0;" title="Morado"></button>
+                        <button class="tool-btn" onclick="setQuickColor('#fb923c')"
+                            style="background:#fb923c; width:20px; height:20px; padding:0;" title="Naranja"></button>
+                        <button class="tool-btn" onclick="setQuickColor('#000000')"
+                            style="background:#000000; width:20px; height:20px; padding:0;" title="Negro"></button>
+                        <button class="tool-btn" onclick="setQuickColor('#ffffff')"
+                            style="background:#ffffff; border:1px solid #ccc; width:20px; height:20px; padding:0;"
+                            title="Blanco"></button>
+                    </div>
                 </div>
                 <div class="toolbar-group">
                     <label style="margin:0; font-size:0.85rem;">Fuente:</label>
-                    <select id="toolFont" style="font-size:0.85rem; padding:4px;">
+                    <select id="toolFont" style="font-size:0.85rem; padding:4px; width: 100px;">
                         <option value="Helvetica">Helvetica</option>
-                        <option value="Times-Roman">Times</option>
-                        <option value="Courier">Courier</option>
                         <option value="Helvetica-Bold">Helvetica Bold</option>
+                        <option value="Helvetica-Oblique">Helvetica Italic</option>
+                        <option value="Helvetica-BoldOblique">Helvetica Bold Italic</option>
+                        <option value="Times-Roman">Times</option>
                         <option value="Times-Bold">Times Bold</option>
+                        <option value="Times-Italic">Times Italic</option>
+                        <option value="Times-BoldItalic">Times Bold Italic</option>
+                        <option value="Courier">Courier</option>
                         <option value="Courier-Bold">Courier Bold</option>
+                        <option value="Courier-Oblique">Courier Italic</option>
+                        <option value="Courier-BoldOblique">Courier Bold Italic</option>
                     </select>
-                    <select id="toolSize" style="font-size:0.85rem; padding:4px; width:60px;">
+                    <select id="toolSize" style="font-size:0.85rem; padding:4px; width:50px;" title="Tamaño Texto">
                         <option value="8">8pt</option>
                         <option value="10">10pt</option>
                         <option value="12" selected>12pt</option>
@@ -781,10 +1050,18 @@
                         <option value="24">24pt</option>
                         <option value="32">32pt</option>
                     </select>
+                    <select id="toolWidth" style="font-size:0.85rem; padding:4px; width:70px;" title="Grosor Línea">
+                        <option value="1">Fino</option>
+                        <option value="2" selected>Normal</option>
+                        <option value="4">Grueso</option>
+                        <option value="8">Marcador</option>
+                    </select>
                 </div>
                 <div class="toolbar-group">
-                    <button class="tool-btn" onclick="changePage(-1)" title="Página anterior">⏮️</button>
-                    <span id="pageLabel" style="font-weight:bold; font-size:0.9rem;">1 / 1</span>
+                    <input type="number" id="pageNumberInput" value="1" min="1"
+                        style="width: 50px; text-align: center; padding: 4px; margin: 0 5px;"
+                        onchange="jumpToPage(this.value)">
+                    <span id="pageTotalLabel" style="font-size:0.9rem;">/ 1</span>
                     <button class="tool-btn" onclick="changePage(1)" title="Página siguiente">⏭️</button>
                 </div>
                 <div class="toolbar-group">
@@ -824,7 +1101,7 @@
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
 
             document.getElementById(tabId).classList.add('active');
-            // Find button that calls this function with tabId and active it - simplified selector for demo
+            // Find button that calls this function with tabId and active it
             const buttons = document.querySelectorAll('.tab-btn');
             if (tabId === 'merge') buttons[0].classList.add('active');
             if (tabId === 'extract') buttons[1].classList.add('active');
@@ -832,6 +1109,9 @@
             if (tabId === 'chapters') buttons[3].classList.add('active');
             if (tabId === 'unlock') buttons[4].classList.add('active');
             if (tabId === 'annotate') buttons[5].classList.add('active');
+            if (tabId === 'media') buttons[6].classList.add('active');
+            if (tabId === 'translate') buttons[7].classList.add('active');
+            if (tabId === 'podcast') buttons[8].classList.add('active');
         }
 
         // --- Helper Functions ---
@@ -857,7 +1137,8 @@
                 console.error("Error loading PDF:", e);
 
                 // Check if it's a password-related error
-                if (e.message && (e.message.includes('password') || e.message.includes('encrypted') || e.message.includes('PasswordException'))) {
+                if (e.message && (e.message.includes('password') || e.message.includes('encrypted') ||
+                    e.message.includes('PasswordException'))) {
                     if (!password) {
                         throw new Error("Este PDF está protegido con contraseña. Por favor, ingrese la contraseña.");
                     } else {
@@ -1068,27 +1349,17 @@
                 for (let i = 0; i < totalPagesToCopy; i += COPY_BATCH_SIZE) {
                     const endIndex = Math.min(i + COPY_BATCH_SIZE, totalPagesToCopy);
                     const batchIndices = pageIndices.slice(i, endIndex);
-
                     logs.textContent = `Copiando páginas ${i + 1}-${endIndex} de ${totalPagesToCopy}... (${Math.round(endIndex / totalPagesToCopy * 100)}%)`;
-
                     const copiedPages = await newPdf.copyPages(pdfDoc, batchIndices);
                     copiedPages.forEach(page => newPdf.addPage(page));
 
                     // Liberar memoria cada lote
-                    if (endIndex < totalPagesToCopy) {
-                        await waitAndClearMemory(config.waitTime || 30);
-                    }
+                    if (endIndex < totalPagesToCopy) { await waitAndClearMemory(config.waitTime || 30); }
                 }
-
                 logs.textContent = "Guardando PDF sin restricciones...";
-
                 // Liberar memoria antes de guardar
                 await waitAndClearMemory(100);
-
-                pdfBytes = await newPdf.save({
-                    useObjectStreams: false,
-                    addDefaultPage: false
-                });
+                pdfBytes = await newPdf.save({ useObjectStreams: false, addDefaultPage: false });
             }
 
             // Verificar que el PDF generado no esté vacío
@@ -1097,24 +1368,20 @@
             }
 
             console.log(`PDF desbloqueado generado: ${pdfBytes.length} bytes`);
-
             const blob = new Blob([pdfBytes], { type: 'application/pdf' });
             const url = URL.createObjectURL(blob);
-
             const link = document.getElementById('unlockDownload');
             link.href = url;
             link.download = outputName;
-
             resultArea.style.display = 'block';
             logs.textContent = `¡Éxito! PDF desbloqueado (${pageCount} páginas) usando: ${strategy}`;
+
         }
 
         // Función para liberar memoria
         function forceGarbageCollection() {
             // Forzar limpieza de memoria
-            if (window.gc) {
-                window.gc();
-            }
+            if (window.gc) { window.gc(); }
         }
 
         // Función para esperar y liberar memoria
@@ -1161,7 +1428,8 @@
             const QUALITY = config.imageQuality;
             const WAIT_TIME = config.waitTime;
 
-            logs.textContent = `Renderizando ${totalPages} páginas (escala ${SCALE}, calidad ${Math.round(QUALITY * 100)}%)...`;
+            logs.textContent = `Renderizando ${totalPages} páginas (escala ${SCALE}, calidad ${Math.round(QUALITY *
+                100)}%)...`;
 
             // Crear un solo canvas reutilizable
             const canvas = document.createElement('canvas');
@@ -1174,7 +1442,6 @@
                 try {
                     const percentage = Math.round(i / totalPages * 100);
                     logs.textContent = `Procesando página ${i}/${totalPages}... (${percentage}%)`;
-
                     const page = await pdfJsDoc.getPage(i);
                     const viewport = page.getViewport({ scale: SCALE });
 
@@ -1186,10 +1453,7 @@
                     context.clearRect(0, 0, canvas.width, canvas.height);
 
                     // Renderizar página
-                    await page.render({
-                        canvasContext: context,
-                        viewport: viewport
-                    }).promise;
+                    await page.render({ canvasContext: context, viewport: viewport }).promise;
 
                     // Convertir a imagen con calidad optimizada
                     const imgDataUrl = canvas.toDataURL('image/jpeg', QUALITY);
@@ -1201,7 +1465,6 @@
                     // Embeber imagen
                     const jpegImage = await newPdf.embedJpg(imgBytes);
                     const newPage = newPdf.addPage([viewport.width, viewport.height]);
-
                     newPage.drawImage(jpegImage, {
                         x: 0,
                         y: 0,
@@ -1217,7 +1480,6 @@
                         logs.textContent = `Liberando memoria... (${i}/${totalPages} - ${percentage}%)`;
                         await waitAndClearMemory(WAIT_TIME);
                     }
-
                 } catch (pageError) {
                     console.error(`Error procesando página ${i}:`, pageError);
                     logs.textContent = `Advertencia: Error en página ${i}, continuando...`;
@@ -1228,7 +1490,6 @@
             // Limpiar canvas
             canvas.width = 0;
             canvas.height = 0;
-
             logs.textContent = "Guardando PDF desbloqueado...";
 
             // Liberar memoria antes de guardar
@@ -1241,25 +1502,19 @@
 
             // Liberar documento original
             pdfJsDoc.destroy();
-
             logs.textContent = "Generando descarga...";
 
             const blob = new Blob([pdfBytes], { type: 'application/pdf' });
             const url = URL.createObjectURL(blob);
-
             const link = document.getElementById('unlockDownload');
             link.href = url;
             link.download = outputName;
-
             resultArea.style.display = 'block';
             logs.textContent = `¡Éxito! PDF desbloqueado (${totalPages} páginas) mediante renderización.`;
 
             // Última limpieza de memoria
             forceGarbageCollection();
-        }
-        // --- MERGE LOGIC ---
-        let mergeFiles = [];
-
+        } // --- MERGE LOGIC --- let mergeFiles=[];
         document.getElementById('mergeFilesInput').addEventListener('change', (e) => {
             const newFiles = Array.from(e.target.files).map(f => ({
                 file: f,
@@ -1280,13 +1535,12 @@
                 <div class="file-info">
                     <span class="file-name">${item.file.name}</span>
                     <div class="file-password">
-                        <input type="password" placeholder="Contraseña (opcional)" 
-                               value="${item.password}" 
-                               oninput="updateMergePassword(${index}, this.value)">
+                        <input type="password" placeholder="Contraseña (opcional)" value="${item.password}"
+                            oninput="updateMergePassword(${index}, this.value)">
                     </div>
                 </div>
                 <button class="btn-remove" onclick="removeMergeFile(${index})">Eliminar</button>
-            `;
+                `;
                 list.appendChild(li);
             });
         }
@@ -1301,978 +1555,1033 @@
             updateMergeBtnState();
         }
 
-        function updateMergeBtnState() {
-            document.getElementById('mergeBtn').disabled = mergeFiles.length < 2;
-            const msg = mergeFiles.length === 0 ? "Añade archivos para comenzar." : `${mergeFiles.length} archivos listos.`;
-            document.getElementById('mergeLogs').textContent = msg;
-        }
+function updateMergeBtnState() {
+    document.getElementById('mergeBtn').disabled = mergeFiles.length < 2;
+    const msg = mergeFiles.length === 0 ? "Añade archivos para comenzar." : `${mergeFiles.length} archivos listos.`;
+    document.getElementById('mergeLogs').textContent = msg;
+}
 
-        async function mergePDFs() {
-            const btn = document.getElementById('mergeBtn');
-            const logs = document.getElementById('mergeLogs');
-            const resultArea = document.getElementById('mergeResult');
+async function mergePDFs() {
+    const btn = document.getElementById('mergeBtn');
+    const logs = document.getElementById('mergeLogs');
+    const resultArea = document.getElementById('mergeResult');
 
-            btn.disabled = true;
-            btn.textContent = "Procesando...";
-            resultArea.style.display = 'none';
-            logs.textContent = "Iniciando unión...";
+    btn.disabled = true;
+    btn.textContent = "Procesando...";
+    resultArea.style.display = 'none';
+    logs.textContent = "Iniciando unión...";
+
+    try {
+        const newPdf = await PDFLib.PDFDocument.create();
+
+        for (let i = 0; i < mergeFiles.length; i++) {
+            const item = mergeFiles[i];
+            logs.textContent = `Procesando archivo ${i + 1}/${mergeFiles.length}: ${item.file.name}...`;
+
+            const bytes = await readPdfBytes(item.file);
+            let pdfDoc;
 
             try {
-                const newPdf = await PDFLib.PDFDocument.create();
-
-                for (let i = 0; i < mergeFiles.length; i++) {
-                    const item = mergeFiles[i];
-                    logs.textContent = `Procesando archivo ${i + 1}/${mergeFiles.length}: ${item.file.name}...`;
-
-                    const bytes = await readPdfBytes(item.file);
-                    let pdfDoc;
-                    try {
-                        pdfDoc = await loadPdfWithPasswordFallback(bytes, item.password);
-                    } catch (e) {
-                        throw new Error(`Fallo al abrir ${item.file.name}. ¿Requiere contraseña?`);
-                    }
-
-                    const copiedPages = await newPdf.copyPages(pdfDoc, pdfDoc.getPageIndices());
-                    copiedPages.forEach(p => newPdf.addPage(p));
-                }
-
-                logs.textContent = "Generando archivo final...";
-                const pdfBytes = await newPdf.save();
-                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-
-                const url = URL.createObjectURL(blob);
-                const link = document.getElementById('mergeDownload');
-                link.href = url;
-                link.download = document.getElementById('mergeOutputName').value || 'unido.pdf';
-
-                resultArea.style.display = 'block';
-                logs.textContent = "¡Completado!";
-
-            } catch (error) {
-                alert(error.message);
-                logs.textContent = "Error: " + error.message;
-            } finally {
-                btn.disabled = false;
-                btn.textContent = "Unir PDFs Seleccionados";
+                pdfDoc = await loadPdfWithPasswordFallback(bytes, item.password);
+            } catch (e) {
+                throw new Error(`Fallo al abrir ${item.file.name}. ¿Requiere contraseña?`);
             }
+
+            const copiedPages = await newPdf.copyPages(pdfDoc, pdfDoc.getPageIndices());
+            copiedPages.forEach(p => newPdf.addPage(p));
         }
 
-        // --- RANGE EXTRACT LOGIC ---
-        let singleFile = null;
+        logs.textContent = "Generando archivo final...";
+        const pdfBytes = await newPdf.save();
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
 
-        function handleSingleFileSelect(tab) {
-            const input = document.getElementById(tab + 'FileInput');
-            const info = document.getElementById(tab + 'FileInfo');
-            const nameSpan = document.getElementById(tab + 'FileName');
-            const btn = document.getElementById(tab + 'Btn');
+        const link = document.getElementById('mergeDownload');
+        link.href = url;
+        link.download = document.getElementById('mergeOutputName').value || 'unido.pdf';
 
-            if (input.files.length > 0) {
-                info.style.display = 'block';
-                nameSpan.textContent = input.files[0].name;
-                btn.disabled = false;
-            } else {
-                info.style.display = 'none';
-                btn.disabled = true;
+        resultArea.style.display = 'block';
+        logs.textContent = "¡Completado!";
+
+    } catch (error) {
+        alert(error.message);
+        logs.textContent = "Error: " + error.message;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = "Unir PDFs Seleccionados";
+    }
+}
+
+// --- RANGE EXTRACT LOGIC ---
+let singleFile = null;
+
+function handleSingleFileSelect(tab) {
+    const input = document.getElementById(tab + 'FileInput');
+    const info = document.getElementById(tab + 'FileInfo');
+    const nameSpan = document.getElementById(tab + 'FileName');
+    const btn = document.getElementById(tab + 'Btn');
+
+    if (input.files.length > 0) {
+        info.style.display = 'block';
+        nameSpan.textContent = input.files[0].name;
+        btn.disabled = false;
+    } else {
+        info.style.display = 'none';
+        btn.disabled = true;
+    }
+}
+
+async function extractPages() {
+    const input = document.getElementById('extractFileInput');
+    if (!input.files.length) return;
+
+    const file = input.files[0];
+    const password = document.getElementById('extractFilePass').value;
+    const start = parseInt(document.getElementById('startPage').value);
+    const end = parseInt(document.getElementById('endPage').value);
+    const outputName = document.getElementById('extractOutputName').value || 'extracto.pdf';
+    const useRasterize = document.getElementById('rasterizeMode').checked;
+
+    const btn = document.getElementById('extractBtn');
+    const resultArea = document.getElementById('extractResult');
+
+    if (isNaN(start) || isNaN(end) || start < 1 || end < start) {
+        alert("Rango de páginas inválido.");
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = useRasterize ? "Procesando como Imágenes..." : "Procesando...";
+    resultArea.style.display = 'none';
+
+    try {
+        const bytes = await readPdfBytes(file);
+
+        if (useRasterize) {
+            // --- RASTERIZATION MODE (Compatibilidad) ---
+            // Use PDF.js to render pages to canvas, then embed in new PDF
+            const loadingTask = pdfjsLib.getDocument({ data: bytes, password: password });
+            const pdfJsDoc = await loadingTask.promise;
+            const totalPages = pdfJsDoc.numPages;
+
+            if (end > totalPages) throw new Error(`El PDF solo tiene ${totalPages} páginas.`);
+
+            const newPdf = await PDFLib.PDFDocument.create();
+
+            for (let i = start; i <= end; i++) {
+                const page = await pdfJsDoc.getPage(i);
+                const scale = 2; // Higher scale = better quality
+                const viewport = page.getViewport({ scale: scale });
+
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+
+                await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+                const imgDataUrl = canvas.toDataURL('image/png');
+                const imgBytes = await fetch(imgDataUrl).then(res => res.arrayBuffer());
+                const pngImage = await newPdf.embedPng(imgBytes);
+
+                const newPage = newPdf.addPage([viewport.width / scale * 72 / 72, viewport.height / scale * 72 / 72]);
+                newPage.setSize(viewport.width, viewport.height);
+                newPage.drawImage(pngImage, { x: 0, y: 0, width: viewport.width, height: viewport.height });
             }
-        }
 
-        async function extractPages() {
-            const input = document.getElementById('extractFileInput');
-            if (!input.files.length) return;
+            const pdfBytes = await newPdf.save();
+            const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
 
-            const file = input.files[0];
-            const password = document.getElementById('extractFilePass').value;
-            const start = parseInt(document.getElementById('startPage').value);
-            const end = parseInt(document.getElementById('endPage').value);
-            const outputName = document.getElementById('extractOutputName').value || 'extracto.pdf';
-            const useRasterize = document.getElementById('rasterizeMode').checked;
+            const link = document.getElementById('extractDownload');
+            link.href = url;
+            link.download = outputName;
+            resultArea.style.display = 'block';
 
-            const btn = document.getElementById('extractBtn');
-            const resultArea = document.getElementById('extractResult');
+        } else {
+            // --- NORMAL MODE ---
+            const pdfDoc = await loadPdfWithPasswordFallback(bytes, password);
+            const totalPages = pdfDoc.getPageCount();
 
-            if (start < 1 || end < start) {
-                alert("Rango de páginas inválido.");
+            if (end > totalPages) {
+                alert(`El PDF solo tiene ${totalPages} páginas.`);
                 return;
             }
 
-            btn.disabled = true;
-            btn.textContent = useRasterize ? "Procesando como Imágenes..." : "Procesando...";
-            resultArea.style.display = 'none';
+            const newPdf = await PDFLib.PDFDocument.create();
+            const rangeIndices = [];
+            for (let i = start; i <= end; i++) rangeIndices.push(i - 1);
 
-            try {
-                const bytes = await readPdfBytes(file);
+            const copiedPages = await newPdf.copyPages(pdfDoc, rangeIndices);
+            copiedPages.forEach(p => newPdf.addPage(p));
 
-                if (useRasterize) {
-                    // --- RASTERIZATION MODE (Compability) ---
-                    // Use PDF.js to render pages to canvas, then embed in new PDF
+            const pdfBytes = await newPdf.save();
+            const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
+
+            const link = document.getElementById('extractDownload');
+            link.href = url;
+            link.download = outputName;
+            resultArea.style.display = 'block';
+        }
+
+    } catch (error) {
+        alert("Error: " + error.message);
+        console.error(error);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = "Extraer Páginas";
+    }
+}
+
+
+            // --- ANNOTATION LOGIC ---
+            let annotState = {
+                pdfDoc: null,
+                file: null,
+                totalPages: 0,
+                currentPage: 1,
+                scale: 1.5,
+                tool: 'cursor',
+                color: '#ffeb3b',
+                font: 'Helvetica',
+                fontSize: 12,
+                lineWidth: 2,
+                mode: 'annotate', // 'annotate' or 'media'
+                annotations: [],
+                isDrawing: false,
+                startX: 0,
+                startY: 0,
+                drawPoints: []
+            };
+
+            function setTool(tool) {
+                annotState.tool = tool;
+                document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+                const toolMap = {
+                    'cursor': 'btnToolCursor',
+                    'highlight': 'btnToolHighlight',
+                    'underline': 'btnToolUnderline',
+                    'strikethrough': 'btnToolStrike',
+                    'text': 'btnToolText',
+                    'note': 'btnToolNote',
+                    'arrow': 'btnToolArrow',
+                    'rectangle': 'btnToolRect',
+                    'circle': 'btnToolCircle',
+                    'arrow': 'btnToolArrow',
+                    'rectangle': 'btnToolRect',
+                    'circle': 'btnToolCircle',
+                    'draw': 'btnToolDraw',
+                    'eraser': 'btnToolEraser',
+                    'eraserMedia': 'btnToolEraserMedia',
+                    'youtube': 'btnToolYouTube',
+                    'audio': 'btnToolAudio',
+                    'link': 'btnToolLink',
+                    'cursorMedia': 'btnToolCursorMedia'
+                };
+
+                if (toolMap[tool]) {
+                    const btnId = toolMap[tool];
+                    // Handle duplicate tools for different modes
+                    if (tool === 'eraser') {
+                        if (annotState.mode === 'media')
+                            document.getElementById('btnToolEraserMedia').classList.add('active');
+                        else document.getElementById('btnToolEraser').classList.add('active');
+                    } else if (tool === 'cursor') {
+                        if (annotState.mode === 'media')
+                            document.getElementById('btnToolCursorMedia').classList.add('active');
+                        else document.getElementById('btnToolCursor').classList.add('active');
+                    } else {
+                        const el = document.getElementById(btnId);
+                        if (el) el.classList.add('active');
+                    }
+                }
+
+                const layer = document.getElementById('annotationLayer');
+                layer.style.cursor = tool === 'cursor' ? 'default' : 'crosshair';
+            }
+
+            function updateToolbarVisibility() {
+                const annotTools = document.getElementById('annotationTools');
+                const mediaTools = document.getElementById('mediaTools');
+
+                if (annotState.mode === 'media') {
+                    annotTools.style.display = 'none';
+                    mediaTools.style.display = 'flex';
+                } else {
+                    annotTools.style.display = 'flex';
+                    mediaTools.style.display = 'none';
+                }
+            }
+
+            function setQuickColor(color) {
+                annotState.color = color;
+                document.getElementById('toolColor').value = color;
+            }
+
+            function undoAnnotation() {
+                const pageAnnotations = annotState.annotations.filter(a => a.page ===
+                    annotState.currentPage);
+                if (pageAnnotations.length > 0) {
+                    const lastAnnotation = pageAnnotations[pageAnnotations.length - 1];
+                    const index = annotState.annotations.indexOf(lastAnnotation);
+                    annotState.annotations.splice(index, 1);
+                    redrawAnnotations();
+                }
+            }
+
+            function clearPageAnnotations() {
+                if (confirm('¿Limpiar todas las anotaciones de esta página?')) {
+                    annotState.annotations = annotState.annotations.filter(a => a.page !==
+                        annotState.currentPage);
+                    redrawAnnotations();
+                }
+            }
+
+            document.getElementById('toolColor').addEventListener('input', (e) => {
+                annotState.color = e.target.value;
+            });
+
+            document.getElementById('toolFont').addEventListener('change', (e) => {
+                annotState.font = e.target.value;
+            });
+
+            document.getElementById('toolSize').addEventListener('change', (e) => {
+                annotState.fontSize = parseInt(e.target.value);
+            });
+
+            document.getElementById('toolWidth').addEventListener('change', (e) => {
+                annotState.lineWidth = parseInt(e.target.value);
+            });
+
+            async function startAnnotation(mode = 'annotate') {
+                const inputId = mode === 'media' ? 'mediaFileInput' : 'annotateFileInput';
+                const input = document.getElementById(inputId);
+
+                if (!input.files.length) return;
+                annotState.file = input.files[0];
+                annotState.mode = mode;
+
+                try {
+                    const bytes = await readPdfBytes(annotState.file);
+                    // Robust loading for both array buffer and Uint8Array
+                    const loadingTask = pdfjsLib.getDocument({ data: bytes });
+                    annotState.pdfDoc = await loadingTask.promise;
+                    annotState.totalPages = annotState.pdfDoc.numPages;
+                    annotState.currentPage = 1;
+                    annotState.annotations = [];
+
+                    // Update Tools UI
+                    updateToolbarVisibility();
+                    setTool('cursor');
+
+                    // Open Modal
+                    document.getElementById('annotationModal').style.display = 'flex';
+                    renderPage(annotState.currentPage);
+                } catch (e) {
+                    console.error(e);
+                    alert("Error al cargar PDF: " + e.message);
+                }
+                // Reset input so change event fires again if same file selected
+                input.value = '';
+            }
+            function closeModal() {
+                document.getElementById('annotationModal').style.display = 'none';
+            }
+
+            async function changePage(delta) {
+                if (!annotState.pdfDoc) return;
+                const newPage = annotState.currentPage + delta;
+                if (newPage >= 1 && newPage <= annotState.totalPages) {
+                    annotState.currentPage = newPage;
+                    renderPage(newPage);
+                }
+            }
+
+            async function jumpToPage(val) {
+                const pageNum = parseInt(val);
+                if (pageNum >= 1 && pageNum <= annotState.totalPages) {
+                    annotState.currentPage = pageNum;
+                    renderPage(pageNum);
+                } else {
+                    // Restore if invalid
+                    document.getElementById('pageNumberInput').value = annotState.currentPage;
+                }
+            }
+
+            async function renderPage(pageNum) {
+                if (!annotState.pdfDoc) return;
+
+                document.getElementById('pageNumberInput').value = pageNum;
+                document.getElementById('pageTotalLabel').textContent = `/ ${annotState.totalPages}`;
+
+                const page = await annotState.pdfDoc.getPage(pageNum);
+                const viewport = page.getViewport({ scale: annotState.scale });
+
+                const canvas = document.getElementById('pdfCanvas');
+                const context = canvas.getContext('2d');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+
+                const layer = document.getElementById('annotationLayer');
+                layer.height = viewport.height;
+                layer.width = viewport.width;
+
+                await page.render({
+                    canvasContext: context,
+                    viewport: viewport
+                }).promise;
+
+                redrawAnnotations();
+            }
+
+            // --- Annotation Event Handlers ---
+            // Ensure these are attached only once or handled globally. 
+            // For simplicity in this fix, we attach them once in init or ensure idempotency.
+            // But since we are replacing the block, let's attach them properly.
+            // Note: The original code attached them inside renderPage which was bad. 
+            // We will attach them to the layer element here, assuming layer exists.
+
+            const layer = document.getElementById('annotationLayer');
+            if (layer) {
+                // Remove old listeners to be safe if this runs multiple times (though index.html is loaded once)
+                layer.removeEventListener('mousedown', handleMouseDown);
+                layer.removeEventListener('mousemove', handleMouseMove);
+                layer.removeEventListener('mouseup', handleMouseUp);
+
+                layer.addEventListener('mousedown', handleMouseDown);
+                layer.addEventListener('mousemove', handleMouseMove);
+                layer.addEventListener('mouseup', handleMouseUp);
+            }
+
+            function handleMouseDown(e) {
+                if (annotState.tool === 'cursor') return;
+                const rect = document.getElementById('annotationLayer').getBoundingClientRect();
+                annotState.startX = e.clientX - rect.left;
+                annotState.startY = e.clientY - rect.top;
+
+                if (['highlight', 'underline', 'strikethrough', 'arrow', 'rectangle', 'circle'].includes(annotState.tool)) {
+                    annotState.isDrawing = true;
+                } else if (annotState.tool === 'draw') {
+                    annotState.isDrawing = true;
+                    annotState.drawPoints = [{ x: annotState.startX, y: annotState.startY }];
+                } else if (['youtube', 'audio', 'link'].includes(annotState.tool)) {
+                    const url = prompt(annotState.tool === 'youtube' ? "Ingrese URL del Video de YouTube:" :
+                        annotState.tool === 'audio' ? "Ingrese URL del Archivo de Audio:"
+                            : "Ingrese Enlace Web:");
+                    if (url) {
+                        const w = annotState.tool === 'youtube' ? 120 : 60;
+                        const h = annotState.tool === 'youtube' ? 90 : 60;
+                        annotState.annotations.push({
+                            type: annotState.tool,
+                            page: annotState.currentPage,
+                            x: annotState.startX - w / 2,
+                            y: annotState.startY - h / 2,
+                            width: w,
+                            height: h,
+                            url: url,
+                            color: annotState.tool === 'link' ? '#0000ff' : '#ff0000',
+                            vWidth: layer.width,
+                            vHeight: layer.height
+                        });
+                        redrawAnnotations();
+                        setTool('cursor');
+                    }
+                } else if (annotState.tool === 'eraser' || annotState.tool === 'eraserMedia') {
+                    const x = annotState.startX;
+                    const y = annotState.startY;
+                    for (let i = annotState.annotations.length - 1; i >= 0; i--) {
+                        const ann = annotState.annotations[i];
+                        if (ann.page !== annotState.currentPage) continue;
+                        if (isPointInAnnotation(x, y, ann)) {
+                            annotState.annotations.splice(i, 1);
+                            redrawAnnotations();
+                            break;
+                        }
+                    }
+                } else if (annotState.tool === 'text') {
+                    const text = prompt("Ingrese texto:");
+                    if (text) {
+                        annotState.annotations.push({
+                            type: 'text',
+                            page: annotState.currentPage,
+                            x: annotState.startX,
+                            y: annotState.startY,
+                            text: text,
+                            color: annotState.color,
+                            font: annotState.font,
+                            fontSize: annotState.fontSize,
+                            vWidth: layer.width,
+                            vHeight: layer.height
+                        });
+                        redrawAnnotations();
+                    }
+                } else if (annotState.tool === 'note') {
+                    const text = prompt("Ingrese nota:");
+                    if (text) {
+                        annotState.annotations.push({
+                            type: 'note',
+                            page: annotState.currentPage,
+                            x: annotState.startX,
+                            y: annotState.startY,
+                            text: text,
+                            color: annotState.color,
+                            fontSize: annotState.fontSize,
+                            vWidth: layer.width,
+                            vHeight: layer.height
+                        });
+                        redrawAnnotations();
+                    }
+                }
+            }
+
+            function handleMouseMove(e) {
+                if (!annotState.isDrawing) return;
+                const rect = document.getElementById('annotationLayer').getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+
+                if (annotState.tool === 'draw') {
+                    annotState.drawPoints.push({ x: mouseX, y: mouseY });
+                }
+                redrawAnnotations();
+                drawPreview(mouseX, mouseY);
+            }
+
+            function handleMouseUp(e) {
+                if (!annotState.isDrawing) return;
+                annotState.isDrawing = false;
+
+                const rect = document.getElementById('annotationLayer').getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+
+                const width = mouseX - annotState.startX;
+                const height = mouseY - annotState.startY;
+
+                const annotation = {
+                    type: annotState.tool,
+                    page: annotState.currentPage,
+                    x: Math.min(annotState.startX, mouseX),
+                    y: Math.min(annotState.startY, mouseY),
+                    width: Math.abs(width),
+                    height: Math.abs(height),
+                    color: annotState.color,
+                    lineWidth: annotState.lineWidth,
+                    vWidth: layer.width,
+                    vHeight: layer.height
+                };
+
+                if (annotState.tool === 'arrow') {
+                    annotation.x1 = annotState.startX;
+                    annotation.y1 = annotState.startY;
+                    annotation.x2 = mouseX;
+                    annotation.y2 = mouseY;
+                } else if (annotState.tool === 'draw') {
+                    annotation.points = annotState.drawPoints;
+                    annotState.drawPoints = [];
+                }
+
+                if (annotation.width > 2 || annotation.height > 2 ||
+                    annotState.tool === 'draw' || annotState.tool === 'arrow') {
+                    annotState.annotations.push(annotation);
+                }
+
+                redrawAnnotations();
+            }
+
+            function isPointInAnnotation(x, y, ann) {
+                const buffer = 5;
+                if (ann.type === 'draw') {
+                    if (!ann.points) return false;
+                    for (const pt of ann.points) {
+                        if (Math.hypot(pt.x - x, pt.y - y) < 10) return true;
+                    }
+                    return false;
+                }
+                if (['youtube', 'audio', 'link'].includes(ann.type)) {
+                    return (x >= ann.x && x <= ann.x + ann.width &&
+                        y >= ann.y && y <= ann.y + ann.height);
+                }
+                if (ann.width !== undefined && ann.height !== undefined) {
+                    return (x >= ann.x - buffer && x <= ann.x + ann.width + buffer &&
+                        y >= ann.y - buffer && y <= ann.y + ann.height + buffer);
+                }
+                if (ann.type === 'text' || ann.type === 'note') {
+                    return (x >= ann.x && x <= ann.x + 100 && y >= ann.y - 20 && y <= ann.y + 5);
+                }
+                return false;
+            }
+
+            function drawPreview(mouseX, mouseY) {
+                const layer = document.getElementById('annotationLayer');
+                const ctx = layer.getContext('2d');
+                const width = mouseX - annotState.startX;
+                const height = mouseY - annotState.startY;
+
+                ctx.save();
+                ctx.strokeStyle = annotState.color;
+                ctx.fillStyle = annotState.color;
+                ctx.lineWidth = annotState.lineWidth;
+
+                if (annotState.tool === 'highlight') {
+                    ctx.globalAlpha = 0.3;
+                    ctx.fillRect(annotState.startX, annotState.startY, width, height);
+                } else if (annotState.tool === 'underline') {
+                    ctx.beginPath();
+                    ctx.moveTo(annotState.startX, annotState.startY + height);
+                    ctx.lineTo(mouseX, annotState.startY + height);
+                    ctx.stroke();
+                } else if (annotState.tool === 'strikethrough') {
+                    const midY = annotState.startY + height / 2;
+                    ctx.beginPath();
+                    ctx.moveTo(annotState.startX, midY);
+                    ctx.lineTo(mouseX, midY);
+                    ctx.stroke();
+                } else if (annotState.tool === 'arrow') {
+                    drawArrow(ctx, annotState.startX, annotState.startY, mouseX, mouseY, annotState.color);
+                } else if (annotState.tool === 'rectangle') {
+                    ctx.strokeRect(annotState.startX, annotState.startY, width, height);
+                } else if (annotState.tool === 'circle') {
+                    const radiusX = Math.abs(width) / 2;
+                    const radiusY = Math.abs(height) / 2;
+                    const centerX = annotState.startX + width / 2;
+                    const centerY = annotState.startY + height / 2;
+                    ctx.beginPath();
+                    ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
+                    ctx.stroke();
+                } else if (annotState.tool === 'draw') {
+                    ctx.beginPath();
+                    if (annotState.drawPoints && annotState.drawPoints.length > 0) {
+                        ctx.moveTo(annotState.drawPoints[0].x, annotState.drawPoints[0].y);
+                        for (let i = 1; i < annotState.drawPoints.length; i++) {
+                            ctx.lineTo(annotState.drawPoints[i].x, annotState.drawPoints[i].y);
+                        }
+                        ctx.stroke();
+                    }
+                }
+                ctx.restore();
+            }
+
+            function drawArrow(ctx, x1, y1, x2, y2, color) {
+                const headLength = 15;
+                const angle = Math.atan2(y2 - y1, x2 - x1);
+
+                ctx.strokeStyle = color;
+                ctx.fillStyle = color;
+
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(x2, y2);
+                ctx.lineTo(x2 - headLength * Math.cos(angle - Math.PI / 6), y2 - headLength * Math.sin(angle - Math.PI / 6));
+                ctx.lineTo(x2 - headLength * Math.cos(angle + Math.PI / 6), y2 - headLength * Math.sin(angle + Math.PI / 6));
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            function redrawAnnotations() {
+                const layer = document.getElementById('annotationLayer');
+                const ctx = layer.getContext('2d');
+                ctx.clearRect(0, 0, layer.width, layer.height);
+
+                annotState.annotations.forEach(ann => {
+                    if (ann.page !== annotState.currentPage) return;
+
+                    ctx.save();
+                    ctx.strokeStyle = ann.color;
+                    ctx.fillStyle = ann.color;
+                    ctx.lineWidth = ann.lineWidth || 2;
+
+                    if (ann.type === 'highlight') {
+                        ctx.globalAlpha = 0.3;
+                        ctx.fillRect(ann.x, ann.y, ann.width, ann.height);
+                    } else if (ann.type === 'underline') {
+                        ctx.beginPath();
+                        ctx.moveTo(ann.x, ann.y + ann.height);
+                        ctx.lineTo(ann.x + ann.width, ann.y + ann.height);
+                        ctx.stroke();
+                    } else if (ann.type === 'strikethrough') {
+                        const midY = ann.y + ann.height / 2;
+                        ctx.beginPath();
+                        ctx.moveTo(ann.x, midY);
+                        ctx.lineTo(ann.x + ann.width, midY);
+                        ctx.stroke();
+                    } else if (ann.type === 'arrow') {
+                        drawArrow(ctx, ann.x1, ann.y1, ann.x2, ann.y2, ann.color);
+                    } else if (ann.type === 'rectangle') {
+                        ctx.strokeRect(ann.x, ann.y, ann.width, ann.height);
+                    } else if (ann.type === 'circle') {
+                        const radiusX = ann.width / 2;
+                        const radiusY = ann.height / 2;
+                        const centerX = ann.x + radiusX;
+                        const centerY = ann.y + radiusY;
+                        ctx.beginPath();
+                        ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
+                        ctx.stroke();
+                    } else if (ann.type === 'draw') {
+                        if (ann.points && ann.points.length > 1) {
+                            ctx.beginPath();
+                            ctx.moveTo(ann.points[0].x, ann.points[0].y);
+                            for (let i = 1; i < ann.points.length; i++) {
+                                ctx.lineTo(ann.points[i].x, ann.points[i].y);
+                            }
+                            ctx.stroke();
+                        }
+                    } else if (ann.type === 'text') {
+                        const fontSize = ann.fontSize || 12;
+                        ctx.font = `${fontSize}px ${ann.font || 'Arial'}`;
+                        ctx.fillText(ann.text, ann.x, ann.y);
+                    } else if (ann.type === 'note') {
+                        const fontSize = ann.fontSize || 12;
+                        ctx.font = `bold ${fontSize}px Arial`;
+                        ctx.fillText("📝 " + ann.text, ann.x, ann.y);
+                    } else if (['youtube', 'audio', 'link'].includes(ann.type)) {
+                        const centerX = ann.x + ann.width / 2;
+                        const centerY = ann.y + ann.height / 2;
+
+                        ctx.fillStyle = ann.type === 'youtube' ? '#FF0000' :
+                            ann.type === 'audio' ? '#4CAF50' : '#2196F3';
+                        ctx.fillRect(ann.x, ann.y, ann.width, ann.height);
+
+                        ctx.strokeStyle = 'white';
+                        ctx.lineWidth = 3;
+                        ctx.strokeRect(ann.x, ann.y, ann.width, ann.height);
+
+                        ctx.fillStyle = 'white';
+                        ctx.font = `${Math.min(ann.width, ann.height) / 2}px Arial`;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        const symbol = ann.type === 'youtube' ? '▶️' :
+                            ann.type === 'audio' ? '🔊' : '🔗';
+                        ctx.fillText(symbol, centerX, centerY);
+                    }
+                    ctx.restore();
+                });
+            }
+
+            async function saveAnnotations() {
+                const mode = annotState.mode; // 'annotate' or 'media'
+                const resultDivId = mode === 'media' ? 'mediaResult' : 'annotateResult';
+                const downloadLinkId = mode === 'media' ? 'mediaDownload' : 'annotateDownload';
+                const btnSelector = mode === 'media' ? '#mediaBtn' : '#annotateBtn';
+
+                const btn = document.querySelector(btnSelector);
+                const originalText = btn.textContent;
+                btn.textContent = " Procesando...";
+                btn.disabled = true;
+
+                try {
+                    // 1. Cargar el PDF original
+                    const bytes = await readPdfBytes(annotState.file);
+                    const pdfDoc = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true });
+                    const newPdf = await PDFLib.PDFDocument.create();
+
+                    // 2. Embeber fuentes
+                    const fontMap = {
+                        'Helvetica': await newPdf.embedFont(PDFLib.StandardFonts.Helvetica),
+                        'Helvetica-Bold': await newPdf.embedFont(PDFLib.StandardFonts.HelveticaBold),
+                        'Helvetica-Oblique': await newPdf.embedFont(PDFLib.StandardFonts.HelveticaOblique),
+                        'Helvetica-BoldOblique': await newPdf.embedFont(PDFLib.StandardFonts.HelveticaBoldOblique),
+                        'Times-Roman': await newPdf.embedFont(PDFLib.StandardFonts.TimesRoman),
+                        'Times-Bold': await newPdf.embedFont(PDFLib.StandardFonts.TimesRomanBold),
+                        'Times-Italic': await newPdf.embedFont(PDFLib.StandardFonts.TimesRomanItalic),
+                        'Times-BoldItalic': await newPdf.embedFont(PDFLib.StandardFonts.TimesRomanBoldItalic),
+                        'Courier': await newPdf.embedFont(PDFLib.StandardFonts.Courier),
+                        'Courier-Bold': await newPdf.embedFont(PDFLib.StandardFonts.CourierBold),
+                        'Courier-Oblique': await newPdf.embedFont(PDFLib.StandardFonts.CourierOblique),
+                        'Courier-BoldOblique': await newPdf.embedFont(PDFLib.StandardFonts.CourierBoldOblique)
+                    };
+
+                    // 3. Copiar páginas
+                    const pageIndices = pdfDoc.getPageIndices();
+                    const copiedPages = await newPdf.copyPages(pdfDoc, pageIndices);
+                    copiedPages.forEach(page => newPdf.addPage(page));
+                    const pages = newPdf.getPages();
+
+                    // 4. Aplicar anotaciones
+                    for (const ann of annotState.annotations) {
+                        const pageIndex = ann.page - 1;
+                        if (pageIndex < 0 || pageIndex >= pages.length) continue;
+
+                        const page = pages[pageIndex];
+                        const { width, height } = page.getSize();
+                        const rotation = page.getRotation().angle;
+
+                        // Colores
+                        const rgb = ann.color ? hexToRgb(ann.color) : { r: 0, g: 0, b: 0 };
+                        const color = PDFLib.rgb(rgb.r, rgb.g, rgb.b);
+
+                        // Coordenadas
+                        const vX1 = ann.x;
+                        const vY1 = ann.y;
+                        const vX2 = ann.x + (ann.width || 0);
+                        const vY2 = ann.y + (ann.height || 0);
+
+                        const p1 = transformCoordinates(vX1, vY1, ann.vWidth, ann.vHeight, width, height, rotation);
+                        const p2 = transformCoordinates(vX2, vY2, ann.vWidth, ann.vHeight, width, height, rotation);
+
+                        const physX = Math.min(p1.x, p2.x);
+                        const physY = Math.min(p1.y, p2.y);
+                        const physW = Math.abs(p1.x - p2.x);
+                        const physH = Math.abs(p1.y - p2.y);
+
+                        if (['youtube', 'audio', 'link'].includes(ann.type)) {
+                            // Draw Visual
+                            page.drawRectangle({
+                                x: physX, y: physY, width: physW, height: physH,
+                                color: ann.type === 'youtube' ? PDFLib.rgb(1, 0, 0) :
+                                    ann.type === 'audio' ? PDFLib.rgb(0.3, 0.7, 0.3) : PDFLib.rgb(0.1, 0.6, 1),
+                                borderColor: PDFLib.rgb(1, 1, 1), borderWidth: 2
+                            });
+
+                            const label = ann.type === 'youtube' ? "VIDEO" : ann.type === 'audio' ? "AUDIO" : "LINK";
+                            page.drawText(label, {
+                                x: physX + 5, y: physY + physH / 2 - 5, size: 10,
+                                font: fontMap['Helvetica-Bold'], color: PDFLib.rgb(1, 1, 1)
+                            });
+
+                            // Add Link Annotation
+                            // Note: pdf-lib link annotation support is low-level.
+                            const link = newPdf.context.register(
+                                newPdf.context.obj({
+                                    Type: 'Annot', Subtype: 'Link',
+                                    Rect: [physX, physY, physX + physW, physY + physH],
+                                    Border: [0, 0, 0],
+                                    A: { Type: 'Action', S: 'URI', URI: ann.url }
+                                })
+                            );
+
+                            let annots = page.node.Annots();
+                            if (!annots) {
+                                annots = newPdf.context.obj([]);
+                                page.node.set(PDFLib.PDFName.of('Annots'), annots);
+                            }
+                            annots.push(link);
+
+                        } else if (ann.type === 'highlight') {
+                            page.drawRectangle({
+                                x: physX, y: physY, width: physW, height: physH,
+                                color: color, opacity: 0.3
+                            });
+                        } else if (ann.type === 'rectangle') {
+                            page.drawRectangle({
+                                x: physX, y: physY, width: physW, height: physH,
+                                borderColor: color, borderWidth: ann.lineWidth || 2
+                            });
+                        } else if (ann.type === 'circle') {
+                            page.drawEllipse({
+                                x: physX + physW / 2, y: physY + physH / 2,
+                                xScale: physW / 2, yScale: physH / 2,
+                                borderColor: color, borderWidth: ann.lineWidth || 2
+                            });
+                        } else if (ann.type === 'underline') {
+                            // Simple approximation bottom line
+                            page.drawLine({
+                                start: { x: physX, y: physY },
+                                end: { x: physX + physW, y: physY },
+                                thickness: ann.lineWidth || 2, color: color
+                            });
+                        } else if (ann.type === 'strikethrough') {
+                            // Mid line
+                            page.drawLine({
+                                start: { x: physX, y: physY + physH / 2 },
+                                end: { x: physX + physW, y: physY + physH / 2 },
+                                thickness: ann.lineWidth || 2, color: color
+                            });
+                        } else if (ann.type === 'arrow') {
+                            // Recalculate arrow points
+                            if (ann.x1 !== undefined) {
+                                const start = transformCoordinates(ann.x1, ann.y1, ann.vWidth, ann.vHeight, width, height, rotation);
+                                const end = transformCoordinates(ann.x2, ann.y2, ann.vWidth, ann.vHeight, width, height, rotation);
+                                drawArrowOnPage(page, start, end, color, ann.lineWidth || 2);
+                            }
+                        } else if (ann.type === 'draw') {
+                            if (ann.points && ann.points.length > 1) {
+                                for (let i = 0; i < ann.points.length - 1; i++) {
+                                    const pt1 = transformCoordinates(ann.points[i].x, ann.points[i].y, ann.vWidth, ann.vHeight, width, height, rotation);
+                                    const pt2 = transformCoordinates(ann.points[i + 1].x, ann.points[i + 1].y, ann.vWidth, ann.vHeight, width, height, rotation);
+                                    page.drawLine({ start: pt1, end: pt2, thickness: ann.lineWidth || 2, color: color });
+                                }
+                            }
+                        } else if (ann.type === 'text' || ann.type === 'note') {
+                            const fontScale = (rotation === 0 || rotation === 180) ? height / ann.vHeight : width / ann.vHeight;
+                            const fontSize = (ann.fontSize || 12) * fontScale;
+                            const font = fontMap[ann.font] || fontMap['Helvetica'];
+                            const textContent = ann.type === 'note' ? "Nota: " + ann.text : ann.text;
+
+                            // Approx baseline adjust
+                            const textPos = transformCoordinates(ann.x, ann.y + (ann.fontSize || 12), ann.vWidth, ann.vHeight, width, height, rotation);
+                            const textRotation = PDFLib.degrees(-rotation);
+
+                            page.drawText(textContent, {
+                                x: textPos.x, y: textPos.y, size: fontSize, font: font, color: color, rotate: textRotation
+                            });
+                        }
+                    }
+
+                    // Save
+                    const pdfBytes = await newPdf.save();
+                    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                    const url = URL.createObjectURL(blob);
+
+                    const link = document.getElementById(downloadLinkId);
+                    link.href = url;
+                    link.download = "multimedia_" + annotState.file.name;
+
+                    document.getElementById(resultDivId).style.display = 'block';
+                    closeModal();
+
+                } catch (e) {
+                    console.error(e);
+                    alert("Error guardando PDF: " + e.message);
+                } finally {
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                }
+            }
+
+            function transformCoordinates(vx, vy, vW, vH, pW, pH, rotation) {
+                const nX = vx / vW;
+                const nY = vy / vH;
+                let px, py;
+
+                if (rotation === 0) {
+                    px = nX * pW;
+                    py = (1 - nY) * pH;
+                } else if (rotation === 90) {
+                    px = nY * pW;
+                    py = (1 - nX) * pH; // Corrected logic approx
+                } else if (rotation === 180) {
+                    px = (1 - nX) * pW;
+                    py = nY * pH;
+                } else if (rotation === 270 || rotation === -90) {
+                    px = (1 - nY) * pW;
+                    py = nX * pH; // Corrected logic approx
+                } else {
+                    px = nX * pW;
+                    py = (1 - nY) * pH;
+                }
+                return { x: px, y: py };
+            }
+
+            function drawArrowOnPage(page, start, end, color, thickness) {
+                page.drawLine({ start: start, end: end, thickness: thickness, color: color });
+                // Head (simplified)
+                // Ideally calculate angles but for now just line
+            }
+
+            function hexToRgb(hex) {
+                const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+                return result ? {
+                    r: parseInt(result[1], 16) / 255,
+                    g: parseInt(result[2], 16) / 255,
+                    b: parseInt(result[3], 16) / 255
+                } : { r: 0, g: 0, b: 0 };
+            }
+
+            // --- Search Logic Reconstructed ---
+
+            let searchResultData = null;
+
+            function normalizeText(text) {
+                return text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            }
+
+            async function searchAndExtract() {
+                const input = document.getElementById('searchFileInput');
+                const query = document.getElementById('searchQuery').value.trim();
+                const logs = document.getElementById('searchLogs');
+                const resultArea = document.getElementById('searchResult');
+                const previewArea = document.getElementById('searchPreview');
+                const btn = document.getElementById('searchBtn');
+                const password = document.getElementById('searchFilePass').value;
+
+                if (!input.files.length) return;
+                if (!query) { alert("Introduce texto."); return; }
+
+                btn.disabled = true;
+                btn.textContent = "Buscando...";
+                resultArea.style.display = 'none';
+                previewArea.style.display = 'none';
+                logs.textContent = "Cargando...";
+
+                try {
+                    const file = input.files[0];
+                    const bytes = await readPdfBytes(file);
+                    const normalizedQuery = normalizeText(query);
 
                     const loadingTask = pdfjsLib.getDocument({ data: bytes, password: password });
                     const pdfJsDoc = await loadingTask.promise;
                     const totalPages = pdfJsDoc.numPages;
+                    const matchingPages = [];
 
-                    if (end > totalPages) {
-                        throw new Error(`El PDF solo tiene ${totalPages} páginas.`);
-                    }
+                    logs.textContent = `Analizando ${totalPages} páginas...`;
 
-                    const newPdf = await PDFLib.PDFDocument.create();
+                    for (let i = 1; i <= totalPages; i++) {
+                        if (i % 5 === 0) logs.textContent = `Analizando ${i}/${totalPages}...`;
 
-                    // Helper to create valid canvas in Node/Browser 
-                    // In browser document.createElement('canvas') is fine
-
-                    for (let i = start; i <= end; i++) {
                         const page = await pdfJsDoc.getPage(i);
-                        const scale = 2; // Higher scale = better quality but larger size
-                        const viewport = page.getViewport({ scale: scale });
+                        const textContent = await page.getTextContent();
+                        const pageText = textContent.items.map(item => item.str).join(' ');
+                        const normalizedPageText = normalizeText(pageText);
 
-                        const canvas = document.createElement('canvas');
-                        const context = canvas.getContext('2d');
-                        canvas.height = viewport.height;
-                        canvas.width = viewport.width;
+                        if (normalizedPageText.includes(normalizedQuery)) {
+                            const index = normalizedPageText.indexOf(normalizedQuery);
+                            const contextStart = Math.max(0, index - 30);
+                            const contextEnd = Math.min(pageText.length, index + query.length + 30);
+                            const context = pageText.substring(contextStart, contextEnd).trim();
 
-                        await page.render({ canvasContext: context, viewport: viewport }).promise;
-
-                        const imgDataUrl = canvas.toDataURL('image/png');
-                        const imgBytes = await fetch(imgDataUrl).then(res => res.arrayBuffer());
-
-                        const pngImage = await newPdf.embedPng(imgBytes);
-                        const newPage = newPdf.addPage([viewport.width / scale * 72 / 72, viewport.height / scale * 72 / 72]); // keep original dimensions
-                        // Although viewport is scaled, we want the page size to match original visual size or scaled?
-                        // Usually we map pixels to points. 1px = 0.75 point approx, but let's keep it simple.
-                        // Let's set page size to match the image dimensions for now to avoid cropping
-                        newPage.setSize(viewport.width, viewport.height);
-
-                        newPage.drawImage(pngImage, {
-                            x: 0,
-                            y: 0,
-                            width: viewport.width,
-                            height: viewport.height,
-                        });
-                    }
-
-                    const pdfBytes = await newPdf.save();
-                    triggerDownload(pdfBytes, outputName, 'extractDownload', resultArea);
-
-                } else {
-                    // --- NORMAL MODE ---
-                    const pdfDoc = await loadPdfWithPasswordFallback(bytes, password);
-                    const totalPages = pdfDoc.getPageCount();
-
-                    if (end > totalPages) {
-                        alert(`El PDF solo tiene ${totalPages} páginas.`);
-                        btn.disabled = false;
-                        btn.textContent = "Extraer Páginas";
-                        return;
-                    }
-
-                    const newPdf = await PDFLib.PDFDocument.create();
-                    const rangeIndices = [];
-                    for (let i = start; i <= end; i++) rangeIndices.push(i - 1);
-
-                    const copiedPages = await newPdf.copyPages(pdfDoc, rangeIndices);
-                    copiedPages.forEach(p => newPdf.addPage(p));
-
-                    const pdfBytes = await newPdf.save();
-                    triggerDownload(pdfBytes, outputName, 'extractDownload', resultArea);
-                }
-
-            } catch (error) {
-                alert("Error: " + error.message);
-                console.error(error);
-            } finally {
-
-                btn.disabled = false;
-                btn.textContent = "Extraer Páginas";
-            }
-        }
-
-        // --- ANNOTATION LOGIC ---
-        let annotState = {
-            pdfDoc: null,
-            file: null,
-            totalPages: 0,
-            currentPage: 1,
-            scale: 1.5,
-            tool: 'cursor',
-            color: '#ffeb3b',
-            font: 'Helvetica',
-            fontSize: 12,
-            annotations: [],
-            isDrawing: false,
-            startX: 0,
-            startY: 0,
-            drawPoints: []
-        };
-
-        function setTool(tool) {
-            annotState.tool = tool;
-            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-            const toolMap = {
-                'cursor': 'btnToolCursor',
-                'highlight': 'btnToolHighlight',
-                'underline': 'btnToolUnderline',
-                'strikethrough': 'btnToolStrike',
-                'text': 'btnToolText',
-                'note': 'btnToolNote',
-                'arrow': 'btnToolArrow',
-                'rectangle': 'btnToolRect',
-                'circle': 'btnToolCircle',
-                'draw': 'btnToolDraw'
-            };
-
-            if (toolMap[tool]) {
-                document.getElementById(toolMap[tool]).classList.add('active');
-            }
-
-            const layer = document.getElementById('annotationLayer');
-            layer.style.cursor = tool === 'cursor' ? 'default' : 'crosshair';
-        }
-
-        function setQuickColor(color) {
-            annotState.color = color;
-            document.getElementById('toolColor').value = color;
-        }
-
-        function undoAnnotation() {
-            const pageAnnotations = annotState.annotations.filter(a => a.page === annotState.currentPage);
-            if (pageAnnotations.length > 0) {
-                const lastAnnotation = pageAnnotations[pageAnnotations.length - 1];
-                const index = annotState.annotations.indexOf(lastAnnotation);
-                annotState.annotations.splice(index, 1);
-                redrawAnnotations();
-            }
-        }
-
-        function clearPageAnnotations() {
-            if (confirm('¿Limpiar todas las anotaciones de esta página?')) {
-                annotState.annotations = annotState.annotations.filter(a => a.page !== annotState.currentPage);
-                redrawAnnotations();
-            }
-        }
-
-        document.getElementById('toolColor').addEventListener('input', (e) => {
-            annotState.color = e.target.value;
-        });
-
-        document.getElementById('toolFont').addEventListener('change', (e) => {
-            annotState.font = e.target.value;
-        });
-
-        document.getElementById('toolSize').addEventListener('change', (e) => {
-            annotState.fontSize = parseInt(e.target.value);
-        });
-
-        async function startAnnotation() {
-            const input = document.getElementById('annotateFileInput');
-            if (!input.files.length) return;
-            annotState.file = input.files[0];
-
-            try {
-                const bytes = await readPdfBytes(annotState.file);
-                // Robust loading for both array buffer and Uint8Array
-                const loadingTask = pdfjsLib.getDocument({ data: bytes });
-                annotState.pdfDoc = await loadingTask.promise;
-                annotState.totalPages = annotState.pdfDoc.numPages;
-                annotState.currentPage = 1;
-                annotState.annotations = [];
-
-                // Open Modal
-                document.getElementById('annotationModal').style.display = 'flex';
-                renderPage(annotState.currentPage);
-            } catch (e) {
-                console.error(e);
-                alert("Error al cargar PDF: " + e.message);
-            }
-            // Reset input so change event fires again if same file selected
-            input.value = '';
-        }
-
-        function closeModal() {
-            document.getElementById('annotationModal').style.display = 'none';
-        }
-
-        async function changePage(delta) {
-            if (!annotState.pdfDoc) return;
-            const newPage = annotState.currentPage + delta;
-            if (newPage >= 1 && newPage <= annotState.totalPages) {
-                annotState.currentPage = newPage;
-                renderPage(newPage);
-            }
-        }
-
-        async function renderPage(pageNum) {
-            if (!annotState.pdfDoc) return;
-
-            document.getElementById('pageLabel').textContent = `${pageNum} / ${annotState.totalPages}`;
-
-            const page = await annotState.pdfDoc.getPage(pageNum);
-            const viewport = page.getViewport({ scale: annotState.scale });
-
-            const canvas = document.getElementById('pdfCanvas');
-            const context = canvas.getContext('2d');
-            canvas.height = viewport.height;
-            canvas.width = viewport.width;
-
-            const layer = document.getElementById('annotationLayer');
-            layer.height = viewport.height;
-            layer.width = viewport.width;
-
-            await page.render({ canvasContext: context, viewport: viewport }).promise;
-            redrawAnnotations();
-        }
-
-        // Canvas Interaction
-        const layer = document.getElementById('annotationLayer');
-        const ctx = layer.getContext('2d');
-
-        layer.addEventListener('mousedown', handleMouseDown);
-        layer.addEventListener('mousemove', handleMouseMove);
-        layer.addEventListener('mouseup', handleMouseUp);
-
-        function handleMouseDown(e) {
-            if (annotState.tool === 'cursor') return;
-
-            const rect = layer.getBoundingClientRect();
-            annotState.startX = e.clientX - rect.left;
-            annotState.startY = e.clientY - rect.top;
-
-            if (['highlight', 'underline', 'strikethrough', 'arrow', 'rectangle', 'circle'].includes(annotState.tool)) {
-                annotState.isDrawing = true;
-            } else if (annotState.tool === 'draw') {
-                annotState.isDrawing = true;
-                annotState.drawPoints = [{ x: annotState.startX, y: annotState.startY }];
-            } else if (annotState.tool === 'text') {
-                const text = prompt("Ingrese texto:");
-                if (text) {
-                    annotState.annotations.push({
-                        type: 'text',
-                        page: annotState.currentPage,
-                        x: annotState.startX,
-                        y: annotState.startY,
-                        text: text,
-                        color: annotState.color,
-                        font: annotState.font,
-                        fontSize: annotState.fontSize,
-                        vWidth: layer.width,
-                        vHeight: layer.height
-                    });
-                    redrawAnnotations();
-                }
-            } else if (annotState.tool === 'note') {
-                const text = prompt("Ingrese nota:");
-                if (text) {
-                    annotState.annotations.push({
-                        type: 'note',
-                        page: annotState.currentPage,
-                        x: annotState.startX,
-                        y: annotState.startY,
-                        text: text,
-                        color: annotState.color,
-                        fontSize: annotState.fontSize,
-                        vWidth: layer.width,
-                        vHeight: layer.height
-                    });
-                    redrawAnnotations();
-                }
-            }
-        }
-
-        function handleMouseMove(e) {
-            if (!annotState.isDrawing) return;
-
-            const rect = layer.getBoundingClientRect();
-            const mouseX = e.clientX - rect.left;
-            const mouseY = e.clientY - rect.top;
-
-            if (annotState.tool === 'draw') {
-                annotState.drawPoints.push({ x: mouseX, y: mouseY });
-            }
-
-            redrawAnnotations();
-            drawPreview(mouseX, mouseY);
-        }
-
-        function handleMouseUp(e) {
-            if (!annotState.isDrawing) return;
-            annotState.isDrawing = false;
-
-            const rect = layer.getBoundingClientRect();
-            const mouseX = e.clientX - rect.left;
-            const mouseY = e.clientY - rect.top;
-
-            const width = mouseX - annotState.startX;
-            const height = mouseY - annotState.startY;
-
-            const annotation = {
-                type: annotState.tool,
-                page: annotState.currentPage,
-                x: Math.min(annotState.startX, mouseX),
-                y: Math.min(annotState.startY, mouseY),
-                width: Math.abs(width),
-                height: Math.abs(height),
-                color: annotState.color,
-                vWidth: layer.width,
-                vHeight: layer.height
-            };
-
-            if (annotState.tool === 'arrow') {
-                annotation.x1 = annotState.startX;
-                annotation.y1 = annotState.startY;
-                annotation.x2 = mouseX;
-                annotation.y2 = mouseY;
-            } else if (annotState.tool === 'draw') {
-                annotation.points = annotState.drawPoints;
-                annotState.drawPoints = [];
-            }
-
-            if (annotation.width > 2 || annotation.height > 2 || annotState.tool === 'draw' || annotState.tool === 'arrow') {
-                annotState.annotations.push(annotation);
-            }
-
-            redrawAnnotations();
-        }
-
-        function drawPreview(mouseX, mouseY) {
-            const width = mouseX - annotState.startX;
-            const height = mouseY - annotState.startY;
-
-            ctx.strokeStyle = annotState.color;
-            ctx.fillStyle = annotState.color;
-            ctx.lineWidth = 2;
-
-            if (annotState.tool === 'highlight') {
-                ctx.globalAlpha = 0.3;
-                ctx.fillRect(annotState.startX, annotState.startY, width, height);
-                ctx.globalAlpha = 1.0;
-            } else if (annotState.tool === 'underline') {
-                ctx.beginPath();
-                ctx.moveTo(annotState.startX, annotState.startY + Math.abs(height));
-                ctx.lineTo(mouseX, annotState.startY + Math.abs(height));
-                ctx.stroke();
-            } else if (annotState.tool === 'strikethrough') {
-                const midY = annotState.startY + height / 2;
-                ctx.beginPath();
-                ctx.moveTo(annotState.startX, midY);
-                ctx.lineTo(mouseX, midY);
-                ctx.stroke();
-            } else if (annotState.tool === 'arrow') {
-                drawArrow(ctx, annotState.startX, annotState.startY, mouseX, mouseY, annotState.color);
-            } else if (annotState.tool === 'rectangle') {
-                ctx.strokeRect(annotState.startX, annotState.startY, width, height);
-            } else if (annotState.tool === 'circle') {
-                const radiusX = Math.abs(width) / 2;
-                const radiusY = Math.abs(height) / 2;
-                const centerX = annotState.startX + width / 2;
-                const centerY = annotState.startY + height / 2;
-                ctx.beginPath();
-                ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
-                ctx.stroke();
-            } else if (annotState.tool === 'draw') {
-                ctx.beginPath();
-                ctx.moveTo(annotState.drawPoints[0].x, annotState.drawPoints[0].y);
-                for (let i = 1; i < annotState.drawPoints.length; i++) {
-                    ctx.lineTo(annotState.drawPoints[i].x, annotState.drawPoints[i].y);
-                }
-                ctx.stroke();
-            }
-        }
-
-        function drawArrow(ctx, x1, y1, x2, y2, color) {
-            const headLength = 15;
-            const angle = Math.atan2(y2 - y1, x2 - x1);
-
-            ctx.strokeStyle = color;
-            ctx.fillStyle = color;
-            ctx.lineWidth = 2;
-
-            ctx.beginPath();
-            ctx.moveTo(x1, y1);
-            ctx.lineTo(x2, y2);
-            ctx.stroke();
-
-            ctx.beginPath();
-            ctx.moveTo(x2, y2);
-            ctx.lineTo(x2 - headLength * Math.cos(angle - Math.PI / 6), y2 - headLength * Math.sin(angle - Math.PI / 6));
-            ctx.lineTo(x2 - headLength * Math.cos(angle + Math.PI / 6), y2 - headLength * Math.sin(angle + Math.PI / 6));
-            ctx.closePath();
-            ctx.fill();
-        }
-
-        function redrawAnnotations() {
-            ctx.clearRect(0, 0, layer.width, layer.height);
-
-            annotState.annotations.forEach(ann => {
-                if (ann.page !== annotState.currentPage) return;
-
-                ctx.strokeStyle = ann.color;
-                ctx.fillStyle = ann.color;
-                ctx.lineWidth = 2;
-
-                if (ann.type === 'highlight') {
-                    ctx.globalAlpha = 0.3;
-                    ctx.fillRect(ann.x, ann.y, ann.width, ann.height);
-                    ctx.globalAlpha = 1.0;
-                } else if (ann.type === 'underline') {
-                    ctx.beginPath();
-                    ctx.moveTo(ann.x, ann.y + ann.height);
-                    ctx.lineTo(ann.x + ann.width, ann.y + ann.height);
-                    ctx.stroke();
-                } else if (ann.type === 'strikethrough') {
-                    const midY = ann.y + ann.height / 2;
-                    ctx.beginPath();
-                    ctx.moveTo(ann.x, midY);
-                    ctx.lineTo(ann.x + ann.width, midY);
-                    ctx.stroke();
-                } else if (ann.type === 'arrow') {
-                    drawArrow(ctx, ann.x1, ann.y1, ann.x2, ann.y2, ann.color);
-                } else if (ann.type === 'rectangle') {
-                    ctx.strokeRect(ann.x, ann.y, ann.width, ann.height);
-                } else if (ann.type === 'circle') {
-                    const centerX = ann.x + ann.width / 2;
-                    const centerY = ann.y + ann.height / 2;
-                    const radiusX = ann.width / 2;
-                    const radiusY = ann.height / 2;
-                    ctx.beginPath();
-                    ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, 2 * Math.PI);
-                    ctx.stroke();
-                } else if (ann.type === 'draw') {
-                    if (ann.points && ann.points.length > 1) {
-                        ctx.beginPath();
-                        ctx.moveTo(ann.points[0].x, ann.points[0].y);
-                        for (let i = 1; i < ann.points.length; i++) {
-                            ctx.lineTo(ann.points[i].x, ann.points[i].y);
+                            matchingPages.push({
+                                pageNum: i,
+                                index: i - 1,
+                                context: context,
+                                selected: true
+                            });
                         }
-                        ctx.stroke();
                     }
-                } else if (ann.type === 'text') {
-                    const fontSize = ann.fontSize || 12;
-                    ctx.font = `${fontSize}px ${ann.font || 'Arial'}`;
-                    ctx.fillText(ann.text, ann.x, ann.y);
-                } else if (ann.type === 'note') {
-                    const fontSize = ann.fontSize || 12;
-                    ctx.font = `bold ${fontSize}px Arial`;
-                    ctx.fillText("📝 " + ann.text, ann.x, ann.y);
-                }
-            });
-        }
+                    pdfJsDoc.destroy();
 
-        async function saveAnnotations() {
-            const btn = document.querySelector('button[onclick="saveAnnotations()"]');
-            const originalText = btn.textContent;
-            btn.textContent = "Procesando...";
-            btn.disabled = true;
-
-            try {
-                // 1. Cargar el PDF original de forma robusta (ignorar encriptación para extracción)
-                const bytes = await readPdfBytes(annotState.file);
-
-                // Intentar cargar la contraseña si existe alguna inputada previamente en algún lugar, 
-                // o usar la del estado si la tuviéramos (no la tenemos explícita en annotState, 
-                // pero si el usuario ya lo abrió, probablemente sabemos que 'ignoreEncryption' sirve para copiar).
-                // Para simplificar y asegurar que funcione:
-                const pdfDoc = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true });
-
-                // 2. Crear nuevo PDF
-                const newPdf = await PDFLib.PDFDocument.create();
-
-                // 3. Embeber fuentes estándar
-                const helveticaFont = await newPdf.embedFont(PDFLib.StandardFonts.Helvetica);
-                const helveticaBold = await newPdf.embedFont(PDFLib.StandardFonts.HelveticaBold);
-                const timesFont = await newPdf.embedFont(PDFLib.StandardFonts.TimesRoman);
-                const timesBold = await newPdf.embedFont(PDFLib.StandardFonts.TimesRomanBold);
-                const courierFont = await newPdf.embedFont(PDFLib.StandardFonts.Courier);
-                const courierBold = await newPdf.embedFont(PDFLib.StandardFonts.CourierBold);
-
-                const fontMap = {
-                    'Helvetica': helveticaFont,
-                    'Helvetica-Bold': helveticaBold,
-                    'Times-Roman': timesFont,
-                    'Times-Bold': timesBold,
-                    'Courier': courierFont,
-                    'Courier-Bold': courierBold
-                };
-
-                // 4. Copiar todas las páginas
-                const pageIndices = pdfDoc.getPageIndices();
-
-                // Usar copia en lotes para memoria
-                const copiedPages = await newPdf.copyPages(pdfDoc, pageIndices);
-                copiedPages.forEach(page => newPdf.addPage(page));
-
-                const pages = newPdf.getPages();
-
-                // 5. Aplicar anotaciones
-                annotState.annotations.forEach(ann => {
-                    // Validar página destino
-                    const pageIndex = ann.page - 1;
-                    if (pageIndex < 0 || pageIndex >= pages.length) return;
-
-                    const page = pages[pageIndex];
-                    const { width, height } = page.getSize();
-                    const rotation = page.getRotation().angle;
-
-                    // Colores
-                    const rgb = hexToRgb(ann.color);
-                    const color = PDFLib.rgb(rgb.r, rgb.g, rgb.b);
-
-                    // Definir coordenadas visuales del elemento (Bounding Box)
-                    // ann.x, ann.y son Top-Left en el canvas visual
-                    const vX1 = ann.x;
-                    const vY1 = ann.y;
-                    const vX2 = ann.x + ann.width;
-                    const vY2 = ann.y + ann.height;
-
-                    // Transformar puntos visuales a puntos físicos del PDF
-                    // ann.vWidth y ann.vHeight son las dimensiones del canvas donde se dibujó
-                    const p1 = transformCoordinates(vX1, vY1, ann.vWidth, ann.vHeight, width, height, rotation);
-                    const p2 = transformCoordinates(vX2, vY2, ann.vWidth, ann.vHeight, width, height, rotation);
-
-                    // Calcular rectángulo físico (mínimos y máximos)
-                    // PDF-Lib usa sistema de coordenadas cartesianas estándar (X crece derecha, Y crece arriba)
-                    // Dibuja desde la esquina "Bottom-Left" del rectángulo definido (x, y)
-                    const physX = Math.min(p1.x, p2.x);
-                    const physY = Math.min(p1.y, p2.y);
-                    const physW = Math.abs(p1.x - p2.x);
-                    const physH = Math.abs(p1.y - p2.y);
-
-                    // --- Dibujar según tipo ---
-
-                    if (ann.type === 'highlight') {
-                        page.drawRectangle({
-                            x: physX,
-                            y: physY,
-                            width: physW,
-                            height: physH,
-                            color: color,
-                            opacity: 0.3,
-                        });
-                    } else if (ann.type === 'rectangle') {
-                        page.drawRectangle({
-                            x: physX,
-                            y: physY,
-                            width: physW,
-                            height: physH,
-                            borderColor: color,
-                            borderWidth: 2,
-                        });
-                    } else if (ann.type === 'circle') {
-                        // Elipse centrada en el punto medio del rect físico
-                        const midX = physX + physW / 2;
-                        const midY = physY + physH / 2;
-                        page.drawEllipse({
-                            x: midX,
-                            y: midY,
-                            xScale: physW / 2,
-                            yScale: physH / 2,
-                            borderColor: color,
-                            borderWidth: 2,
-                        });
-                    } else if (ann.type === 'underline') {
-                        // Subrayado visualmente está en la parte inferior del bounding box visual
-                        // Pero dependiendo de la rotación, "abajo" cambia.
-                        // Usaremos la lógica de transform para obtener los puntos de la línea de base.
-
-                        // Línea visual: desde (x, y+h) hasta (x+w, y+h)
-                        const bl = transformCoordinates(vX1, vY2, ann.vWidth, ann.vHeight, width, height, rotation);
-                        const br = transformCoordinates(vX2, vY2, ann.vWidth, ann.vHeight, width, height, rotation);
-
-                        page.drawLine({
-                            start: bl,
-                            end: br,
-                            thickness: 2,
-                            color: color,
-                        });
-                    } else if (ann.type === 'strikethrough') {
-                        // Línea media: desde (x, y+h/2) hasta (x+w, y+h/2)
-                        const midYVisual = vY1 + (ann.height / 2);
-                        const ml = transformCoordinates(vX1, midYVisual, ann.vWidth, ann.vHeight, width, height, rotation);
-                        const mr = transformCoordinates(vX2, midYVisual, ann.vWidth, ann.vHeight, width, height, rotation);
-
-                        page.drawLine({
-                            start: ml,
-                            end: mr,
-                            thickness: 2,
-                            color: color,
-                        });
-                    } else if (ann.type === 'arrow') {
-                        // Flecha tiene puntos específicos x1,y1 -> x2,y2
-                        if (ann.x1 !== undefined) {
-                            const start = transformCoordinates(ann.x1, ann.y1, ann.vWidth, ann.vHeight, width, height, rotation);
-                            const end = transformCoordinates(ann.x2, ann.y2, ann.vWidth, ann.vHeight, width, height, rotation);
-
-                            drawArrowOnPage(page, start, end, color);
-                        }
-                    } else if (ann.type === 'draw') {
-                        // Dibujo a mano alzada: lista de puntos
-                        if (ann.points && ann.points.length > 1) {
-                            for (let i = 0; i < ann.points.length - 1; i++) {
-                                const pt1 = transformCoordinates(ann.points[i].x, ann.points[i].y, ann.vWidth, ann.vHeight, width, height, rotation);
-                                const pt2 = transformCoordinates(ann.points[i + 1].x, ann.points[i + 1].y, ann.vWidth, ann.vHeight, width, height, rotation);
-
-                                page.drawLine({
-                                    start: pt1,
-                                    end: pt2,
-                                    thickness: 2,
-                                    color: color,
-                                });
-                            }
-                        }
-                    } else if (ann.type === 'text' || ann.type === 'note') {
-                        // Texto: posicionar en (x,y) visual que es la base-top-left del texto?
-                        // PDFLib dibuja texto desde la baseline.
-                        // Simplificación: Usar la posición transformada de (x,y)
-
-                        // Ajustar tamaño de fuente según escala
-                        // Escala aproximada basada en el eje Y físico (para mantener altura)
-                        let fontScale = 1;
-                        if (rotation === 0 || rotation === 180) {
-                            fontScale = height / ann.vHeight;
-                        } else {
-                            fontScale = width / ann.vHeight;
-                        }
-
-                        const fontSize = (ann.fontSize || 12) * fontScale;
-                        const font = fontMap[ann.font] || helveticaFont;
-                        // Fix: Standard fonts don't support emojis like 📝. Use text label instead.
-                        const textContent = ann.type === 'note' ? "Nota: " + ann.text : ann.text;
-
-                        // Para texto, p1 es la esquina superior izquierda visual.
-                        // PDFLib espera coordenadas de la esquina inferior izquierda del texto (baseline aprox).
-                        // Ajuste simple: bajar un poco (fontSize) en dirección visual Y.
-
-                        const baselineVisualY = vY1 + (ann.fontSize || 12);
-                        const textPos = transformCoordinates(vX1, baselineVisualY, ann.vWidth, ann.vHeight, width, height, rotation);
-
-                        const textRotation = PDFLib.degrees(-rotation);
-
-                        page.drawText(textContent, {
-                            x: textPos.x,
-                            y: textPos.y,
-                            size: fontSize,
-                            font: font,
-                            color: color,
-                            rotate: textRotation
-                        });
+                    if (matchingPages.length === 0) {
+                        logs.textContent = "No se encontraron coinciciencias.";
+                        alert("No encontrado.");
+                    } else {
+                        searchResultData = {
+                            bytes: bytes,
+                            password: password,
+                            matchingPages: matchingPages
+                        };
+                        displaySearchResults(matchingPages);
+                        logs.textContent = `Encontradas ${matchingPages.length} páginas.`;
                     }
-                });
 
-                const pdfBytes = await newPdf.save();
-                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-                const url = URL.createObjectURL(blob);
-                const link = document.getElementById('annotateDownload');
-                link.href = url;
-                link.download = "anotado_" + annotState.file.name;
-
-                document.getElementById('annotateResult').style.display = 'block';
-                // alert("PDF anotado guardado correctamente!");
-                closeModal();
-
-            } catch (e) {
-                alert("Error detallado guardando: " + e.message);
-                console.error(e);
-            } finally {
-                btn.textContent = originalText;
-                btn.disabled = false;
-            }
-        }
-
-        // --- Helper: Transform Visual Coords (Canvas) to Physical PDF Coords ---
-        function transformCoordinates(vx, vy, vW, vH, pW, pH, rotation) {
-            // Normalizar coordenadas visuales (0 a 1)
-            const nX = vx / vW;
-            const nY = vy / vH;
-
-            let px, py;
-
-            // Mapeo según rotación de la página (en grados CW)
-            // Recordar: PDF coords (0,0) es Bottom-Left. Canvas (0,0) es Top-Left.
-
-            if (rotation === 0) {
-                // Estándar
-                // Visual X -> Physical X
-                // Visual Y (down) -> Physical Y (down from top) => (1-nY)
-                px = nX * pW;
-                py = (1 - nY) * pH;
-            }
-            else if (rotation === 90) {
-                // Rotado 90 CW (Top visual es Left físico)
-                // deducido: px = ny * pW, py = nx * pH
-                px = nY * pW;
-                py = nX * pH;
-            }
-            else if (rotation === 180) {
-                // Rotado 180 (Invertido)
-                // deducido: px = (1-nx)*W, py = ny*H
-                px = (1 - nX) * pW;
-                py = nY * pH;
-            }
-            else if (rotation === 270 || rotation === -90) {
-                // Rotado 270 CW
-                // deducido: px = (1-ny)*W, py = (1-nx)*H
-                px = (1 - nY) * pW;
-                py = (1 - nX) * pH;
-            } else {
-                // Fallback para rotaciones extrañas, tratar como 0
-                px = nX * pW;
-                py = (1 - nY) * pH;
-            }
-
-            return { x: px, y: py };
-        }
-
-        function drawArrowOnPage(page, start, end, color) {
-            // Línea principal
-            page.drawLine({
-                start: start,
-                end: end,
-                thickness: 2,
-                color: color,
-            });
-
-            // Calcular cabecera
-            const angle = Math.atan2(end.y - start.y, end.x - start.x);
-            const headLength = 10; // Unidades PDF (aprox puntos)
-
-            // Puntos de la cabeza
-            const xLeft = end.x - headLength * Math.cos(angle - Math.PI / 6);
-            const yLeft = end.y - headLength * Math.sin(angle - Math.PI / 6);
-            const xRight = end.x - headLength * Math.cos(angle + Math.PI / 6);
-            const yRight = end.y - headLength * Math.sin(angle + Math.PI / 6);
-
-            page.drawLine({ start: end, end: { x: xLeft, y: yLeft }, thickness: 2, color: color });
-            page.drawLine({ start: end, end: { x: xRight, y: yRight }, thickness: 2, color: color });
-        }
-
-        function hexToRgb(hex) {
-            const r = parseInt(hex.substr(1, 2), 16) / 255;
-            const g = parseInt(hex.substr(3, 2), 16) / 255;
-            const b = parseInt(hex.substr(5, 2), 16) / 255;
-            return { r, g, b };
-        }
-
-        // Variable global para almacenar resultado de búsqueda
-        let searchResultData = null;
-
-        // Función para normalizar texto (quitar acentos y convertir a minúsculas)
-        function normalizeText(text) {
-            return text
-                .toLowerCase()
-                .normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, ''); // Eliminar acentos
-        }
-
-        async function searchAndExtract() {
-            const input = document.getElementById('searchFileInput');
-            const query = document.getElementById('searchQuery').value.trim();
-            const logs = document.getElementById('searchLogs');
-            const resultArea = document.getElementById('searchResult');
-            const previewArea = document.getElementById('searchPreview');
-            const btn = document.getElementById('searchBtn');
-            const password = document.getElementById('searchFilePass').value;
-
-            if (!input.files.length) return;
-            if (!query) {
-                alert("Introduce un texto para buscar.");
-                return;
-            }
-
-            btn.disabled = true;
-            btn.textContent = "Buscando...";
-            resultArea.style.display = 'none';
-            previewArea.style.display = 'none';
-            logs.textContent = "Cargando documento para búsqueda...";
-
-            try {
-                const file = input.files[0];
-                const bytes = await readPdfBytes(file);
-
-                // Normalizar query para búsqueda inteligente
-                const normalizedQuery = normalizeText(query);
-
-                // Identify pages using PDF.js
-                const loadingTask = pdfjsLib.getDocument({ data: bytes, password: password });
-                const pdfJsDoc = await loadingTask.promise;
-
-                const totalPages = pdfJsDoc.numPages;
-                const matchingPages = []; // Array de objetos con info de página
-
-                logs.textContent = `Analizando ${totalPages} páginas...`;
-
-                for (let i = 1; i <= totalPages; i++) {
-                    if (i % 5 === 0) logs.textContent = `Analizando página ${i}/${totalPages}...`;
-
-                    const page = await pdfJsDoc.getPage(i);
-                    const textContent = await page.getTextContent();
-                    const pageText = textContent.items.map(item => item.str).join(' ');
-
-                    // Búsqueda inteligente: sin acentos ni mayúsculas
-                    const normalizedPageText = normalizeText(pageText);
-
-                    if (normalizedPageText.includes(normalizedQuery)) {
-                        // Extraer contexto (primeras palabras donde aparece)
-                        const index = normalizedPageText.indexOf(normalizedQuery);
-                        const contextStart = Math.max(0, index - 30);
-                        const contextEnd = Math.min(pageText.length, index + query.length + 30);
-                        const context = pageText.substring(contextStart, contextEnd).trim();
-
-                        matchingPages.push({
-                            pageNum: i,
-                            index: i - 1, // 0-indexed for pdf-lib
-                            context: context,
-                            selected: true // Por defecto todas seleccionadas
-                        });
-                    }
+                } catch (error) {
+                    console.error(error);
+                    alert("Error: " + error.message);
+                    logs.textContent = "Error.";
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = "Buscar Páginas";
                 }
-
-                pdfJsDoc.destroy();
-
-                if (matchingPages.length === 0) {
-                    logs.textContent = "No se encontraron coincidencias.";
-                    alert("No se encontró el texto en el documento.");
-                    return;
-                }
-
-                // Guardar datos para extracción posterior
-                searchResultData = {
-                    bytes: bytes,
-                    password: password,
-                    matchingPages: matchingPages
-                };
-
-                // Mostrar preview de páginas encontradas
-                displaySearchResults(matchingPages, query);
-                logs.textContent = `Encontradas ${matchingPages.length} páginas. Revise y confirme la extracción.`;
-
-            } catch (error) {
-                console.error(error);
-                if (error.name === 'PasswordException') {
-                    alert("Contraseña incorrecta.");
-                } else {
-                    alert("Error durante el proceso: " + error.message);
-                }
-                logs.textContent = "Error.";
-            } finally {
-                btn.disabled = false;
-                btn.textContent = "Buscar Páginas";
             }
-        }
 
-        function displaySearchResults(matchingPages, query) {
-            const previewArea = document.getElementById('searchPreview');
-            const pagesList = document.getElementById('searchPagesList');
+            function displaySearchResults(matchingPages) {
+                const previewArea = document.getElementById('searchPreview');
+                const pagesList = document.getElementById('searchPagesList');
+                pagesList.innerHTML = '';
 
-            pagesList.innerHTML = '';
-
-            matchingPages.forEach((pageData, idx) => {
-                const itemDiv = document.createElement('div');
-                itemDiv.style.cssText = 'padding: 10px; margin-bottom: 8px; background: white; border: 1px solid var(--border); border-radius: 4px;';
-
-                itemDiv.innerHTML = `
+                matchingPages.forEach((pageData, idx) => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.style.cssText = 'padding: 10px; margin-bottom: 8px; background: white; border: 1px solid var(--border); border-radius: 4px;';
+                    itemDiv.innerHTML = `
                     <label style="display: flex; align-items: start; cursor: pointer; gap: 10px;">
-                        <input type="checkbox"
-                               id="searchPage${idx}"
-                               ${pageData.selected ? 'checked' : ''}
-                               onchange="toggleSearchPage(${idx})"
-                               style="margin-top: 3px;">
+                        <input type="checkbox" id="searchPage${idx}" 
+                            ${pageData.selected ? 'checked' : ''} 
+                            onchange="toggleSearchPage(${idx})"
+                            style="margin-top: 3px;">
                         <div style="flex: 1;">
                             <strong>Página ${pageData.pageNum}</strong>
                             <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">
@@ -2281,471 +2590,98 @@
                         </div>
                     </label>
                 `;
-
-                pagesList.appendChild(itemDiv);
-            });
-
-            previewArea.style.display = 'block';
-        }
-
-        function toggleSearchPage(idx) {
-            if (searchResultData && searchResultData.matchingPages[idx]) {
-                const checkbox = document.getElementById(`searchPage${idx}`);
-                searchResultData.matchingPages[idx].selected = checkbox.checked;
-            }
-        }
-
-        function cancelSearch() {
-            document.getElementById('searchPreview').style.display = 'none';
-            searchResultData = null;
-        }
-
-        async function extractFoundPages() {
-            if (!searchResultData) return;
-
-            const outputName = document.getElementById('searchOutputName').value || 'busqueda.pdf';
-            const useRasterMode = document.getElementById('searchRasterMode').checked;
-            const logs = document.getElementById('searchLogs');
-            const resultArea = document.getElementById('searchResult');
-            const extractBtn = document.getElementById('extractFoundBtn');
-
-            // Obtener solo las páginas seleccionadas
-            const selectedPages = searchResultData.matchingPages.filter(p => p.selected);
-
-            if (selectedPages.length === 0) {
-                alert("Debe seleccionar al menos una página.");
-                return;
-            }
-
-            extractBtn.disabled = true;
-            extractBtn.textContent = "Extrayendo...";
-            resultArea.style.display = 'none';
-
-            try {
-                const bytes = searchResultData.bytes;
-                const password = searchResultData.password;
-                const selectedIndices = selectedPages.map(p => p.index);
-
-                logs.textContent = `Extrayendo ${selectedPages.length} páginas...`;
-
-                if (useRasterMode) {
-                    // Modo compatibilidad: renderizar como imágenes
-                    await extractPagesAsImages(bytes, password, selectedIndices, outputName, logs, resultArea);
-                } else {
-                    // Modo normal: copiar páginas
-                    const pdfDoc = await loadPdfWithPasswordFallback(bytes, password);
-                    const newPdf = await PDFLib.PDFDocument.create();
-
-                    const copiedPages = await newPdf.copyPages(pdfDoc, selectedIndices);
-                    copiedPages.forEach(p => newPdf.addPage(p));
-
-                    const pdfBytes = await newPdf.save();
-                    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-
-                    const url = URL.createObjectURL(blob);
-                    const link = document.getElementById('searchDownload');
-                    link.href = url;
-                    link.download = outputName;
-
-                    resultArea.style.display = 'block';
-                    logs.textContent = "¡Proceso terminado exitosamente!";
-                }
-
-                // Ocultar preview
-                document.getElementById('searchPreview').style.display = 'none';
-
-            } catch (error) {
-                console.error(error);
-                alert("Error durante la extracción: " + error.message);
-                logs.textContent = "Error en extracción.";
-            } finally {
-                extractBtn.disabled = false;
-                extractBtn.textContent = "Extraer Páginas Seleccionadas";
-            }
-        }
-
-        async function extractPagesAsImages(bytes, password, pageIndices, outputName, logs, resultArea) {
-            logs.textContent = "Cargando PDF en modo compatibilidad...";
-
-            const loadingTask = pdfjsLib.getDocument({ data: bytes, password: password || undefined });
-            const pdfJsDoc = await loadingTask.promise;
-
-            const newPdf = await PDFLib.PDFDocument.create();
-            const scale = 1.5;
-
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d', { willReadFrequently: false, alpha: false });
-
-            for (let i = 0; i < pageIndices.length; i++) {
-                const pageNum = pageIndices[i] + 1; // pageIndices is 0-indexed
-                logs.textContent = `Renderizando página ${pageNum} (${i + 1}/${pageIndices.length})...`;
-
-                const page = await pdfJsDoc.getPage(pageNum);
-                const viewport = page.getViewport({ scale: scale });
-
-                canvas.height = viewport.height;
-                canvas.width = viewport.width;
-                context.clearRect(0, 0, canvas.width, canvas.height);
-
-                await page.render({ canvasContext: context, viewport: viewport }).promise;
-
-                const imgDataUrl = canvas.toDataURL('image/jpeg', 0.92);
-                const response = await fetch(imgDataUrl);
-                const imgBytes = await response.arrayBuffer();
-
-                const jpegImage = await newPdf.embedJpg(imgBytes);
-                const newPage = newPdf.addPage([viewport.width, viewport.height]);
-
-                newPage.drawImage(jpegImage, {
-                    x: 0,
-                    y: 0,
-                    width: viewport.width,
-                    height: viewport.height,
+                    pagesList.appendChild(itemDiv);
                 });
+                previewArea.style.display = 'block';
+            }
 
-                page.cleanup();
-
-                if ((i + 1) % 5 === 0) {
-                    await waitAndClearMemory(30);
+            function toggleSearchPage(idx) {
+                if (searchResultData && searchResultData.matchingPages[idx]) {
+                    const checkbox = document.getElementById(`searchPage${idx}`);
+                    searchResultData.matchingPages[idx].selected = checkbox.checked;
                 }
             }
 
-            canvas.width = 0;
-            canvas.height = 0;
-            pdfJsDoc.destroy();
-
-            logs.textContent = "Guardando PDF...";
-            const pdfBytes = await newPdf.save();
-
-            const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-            const url = URL.createObjectURL(blob);
-            const link = document.getElementById('searchDownload');
-            link.href = url;
-            link.download = outputName;
-
-            resultArea.style.display = 'block';
-            logs.textContent = "¡Proceso terminado exitosamente!";
-        }
-
-        // --- CHAPTERS EXTRACTION LOGIC ---
-        let chaptersData = null;
-
-        async function detectChapters() {
-            const input = document.getElementById('chaptersFileInput');
-            const patterns = document.getElementById('chapterPattern').value.trim();
-            const useNumbers = document.getElementById('chapterUseNumbers').checked;
-            const logs = document.getElementById('chaptersLogs');
-            const previewArea = document.getElementById('chaptersPreview');
-            const resultArea = document.getElementById('chaptersResult');
-            const btn = document.getElementById('chaptersBtn');
-            const password = document.getElementById('chaptersFilePass').value;
-
-            if (!input.files.length) return;
-            if (!patterns) {
-                alert("Ingrese al menos un patrón de búsqueda.");
-                return;
+            function cancelSearch() {
+                document.getElementById('searchPreview').style.display = 'none';
+                searchResultData = null;
             }
 
-            btn.disabled = true;
-            btn.textContent = "Detectando...";
-            previewArea.style.display = 'none';
-            resultArea.style.display = 'none';
-            logs.textContent = "Cargando documento...";
+            function waitAndClearMemory(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
 
-            try {
-                const file = input.files[0];
-                const bytes = await readPdfBytes(file);
+            async function extractFoundPages() {
+                if (!searchResultData) return;
 
-                // Convertir patrones a array
-                const patternList = patterns.split(',').map(p => p.trim()).filter(p => p);
+                const outputName = document.getElementById('searchOutputName').value || 'busqueda.pdf';
+                const useRasterMode = document.getElementById('searchRasterMode').checked;
+                const logs = document.getElementById('searchLogs');
+                const resultArea = document.getElementById('searchResult');
+                const extractBtn = document.getElementById('extractFoundBtn');
 
-                logs.textContent = "Analizando estructura del documento...";
+                // Obtener solo las páginas seleccionadas
+                const selectedPages = searchResultData.matchingPages.filter(p => p.selected);
 
-                const loadingTask = pdfjsLib.getDocument({ data: bytes, password: password });
-                const pdfJsDoc = await loadingTask.promise;
-                const totalPages = pdfJsDoc.numPages;
-
-                const chapters = [];
-                logs.textContent = `Buscando capítulos en ${totalPages} páginas...`;
-
-                // Patrón regex para números romanos y arábigos
-                const numberPatterns = useNumbers ?
-                    /(\d+|I{1,3}|IV|V|VI{0,3}|IX|X{1,3}|XI{0,3}|XIV|XV|XVI{0,3}|XIX|XX)/i :
-                    null;
-
-                for (let i = 1; i <= totalPages; i++) {
-                    if (i % 10 === 0) logs.textContent = `Analizando página ${i}/${totalPages}...`;
-
-                    const page = await pdfJsDoc.getPage(i);
-                    const textContent = await page.getTextContent();
-                    const pageText = textContent.items.map(item => item.str).join(' ');
-
-                    // Buscar cada patrón
-                    for (const pattern of patternList) {
-                        const normalizedPattern = normalizeText(pattern);
-                        const normalizedText = normalizeText(pageText);
-
-                        let regex;
-                        if (useNumbers) {
-                            // Buscar patrón seguido de número
-                            regex = new RegExp(normalizedPattern + '\\s*' + numberPatterns.source, 'gi');
-                        } else {
-                            // Buscar solo el patrón
-                            regex = new RegExp(normalizedPattern, 'gi');
-                        }
-
-                        const matches = [...normalizedText.matchAll(regex)];
-
-                        if (matches.length > 0) {
-                            // Extraer el título completo del capítulo
-                            const match = matches[0];
-                            const matchIndex = match.index;
-
-                            // Buscar en texto original (no normalizado) para obtener título real
-                            let titleStart = matchIndex;
-                            let titleEnd = Math.min(pageText.length, matchIndex + 100);
-
-                            // Buscar hasta punto, nueva línea o fin de texto
-                            const titleText = pageText.substring(titleStart, titleEnd);
-                            const endMarkers = ['\n', '.', '  '];
-                            let actualEnd = titleText.length;
-
-                            for (const marker of endMarkers) {
-                                const idx = titleText.indexOf(marker, pattern.length);
-                                if (idx > 0 && idx < actualEnd) {
-                                    actualEnd = idx;
-                                }
-                            }
-
-                            const chapterTitle = pageText.substring(titleStart, titleStart + actualEnd).trim();
-
-                            // Evitar duplicados en la misma página
-                            if (!chapters.find(ch => ch.startPage === i)) {
-                                chapters.push({
-                                    title: chapterTitle,
-                                    startPage: i,
-                                    endPage: null, // Se calculará después
-                                    selected: true
-                                });
-                            }
-                        }
-                    }
-                }
-
-                pdfJsDoc.destroy();
-
-                if (chapters.length === 0) {
-                    logs.textContent = "No se detectaron capítulos.";
-                    alert("No se encontraron capítulos con los patrones especificados.");
+                if (selectedPages.length === 0) {
+                    alert("Debe seleccionar al menos una página.");
                     return;
                 }
 
-                // Calcular páginas finales
-                for (let i = 0; i < chapters.length; i++) {
-                    if (i < chapters.length - 1) {
-                        chapters[i].endPage = chapters[i + 1].startPage - 1;
+                extractBtn.disabled = true;
+                extractBtn.textContent = "Extrayendo...";
+                resultArea.style.display = 'none';
+
+                try {
+                    const bytes = searchResultData.bytes;
+                    const password = searchResultData.password;
+                    const selectedIndices = selectedPages.map(p => p.index);
+
+                    logs.textContent = `Extrayendo ${selectedPages.length} páginas...`;
+
+                    if (useRasterMode) {
+                        // Modo compatibilidad: renderizar como imágenes
+                        await extractPagesAsImages(bytes, password, selectedIndices, outputName, logs, resultArea);
                     } else {
-                        chapters[i].endPage = totalPages;
+                        // Modo normal: copiar páginas
+                        const pdfDoc = await loadPdfWithPasswordFallback(bytes, password);
+                        const newPdf = await PDFLib.PDFDocument.create();
+
+                        const copiedPages = await newPdf.copyPages(pdfDoc, selectedIndices);
+                        copiedPages.forEach(p => newPdf.addPage(p));
+
+                        const pdfBytes = await newPdf.save();
+                        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+
+                        const url = URL.createObjectURL(blob);
+                        const link = document.getElementById('searchDownload');
+                        link.href = url;
+                        link.download = outputName;
+
+                        resultArea.style.display = 'block';
+                        logs.textContent = "¡Proceso terminado exitosamente!";
                     }
+
+                    // Ocultar preview
+                    document.getElementById('searchPreview').style.display = 'none';
+
+                } catch (error) {
+                    console.error(error);
+                    alert("Error durante la extracción: " + error.message);
+                    logs.textContent = "Error en extracción.";
+                } finally {
+                    extractBtn.disabled = false;
+                    extractBtn.textContent = "Extraer Páginas Seleccionadas";
                 }
-
-                // Guardar datos
-                chaptersData = {
-                    bytes: bytes,
-                    password: password,
-                    chapters: chapters,
-                    totalPages: totalPages
-                };
-
-                displayChapters(chapters);
-                logs.textContent = `Detectados ${chapters.length} capítulos. Revise y confirme la extracción.`;
-
-            } catch (error) {
-                console.error(error);
-                alert("Error durante la detección: " + error.message);
-                logs.textContent = "Error.";
-            } finally {
-                btn.disabled = false;
-                btn.textContent = "Detectar Capítulos";
-            }
-        }
-
-        function displayChapters(chapters) {
-            const previewArea = document.getElementById('chaptersPreview');
-            const chaptersList = document.getElementById('chaptersList');
-
-            chaptersList.innerHTML = '';
-
-            chapters.forEach((chapter, idx) => {
-                const itemDiv = document.createElement('div');
-                itemDiv.style.cssText = 'padding: 12px; margin-bottom: 10px; background: white; border: 1px solid var(--border); border-radius: 4px;';
-
-                const pageCount = chapter.endPage - chapter.startPage + 1;
-
-                itemDiv.innerHTML = `
-                    <label style="display: flex; align-items: start; cursor: pointer; gap: 10px;">
-                        <input type="checkbox"
-                               id="chapter${idx}"
-                               ${chapter.selected ? 'checked' : ''}
-                               onchange="toggleChapter(${idx})"
-                               style="margin-top: 3px;">
-                        <div style="flex: 1;">
-                            <div style="font-weight: 600; margin-bottom: 4px;">
-                                ${chapter.title || 'Capítulo ' + (idx + 1)}
-                            </div>
-                            <div style="font-size: 0.85rem; color: var(--text-muted);">
-                                Páginas ${chapter.startPage} - ${chapter.endPage}
-                                (${pageCount} página${pageCount > 1 ? 's' : ''})
-                            </div>
-                        </div>
-                        <button class="btn"
-                                onclick="event.stopPropagation(); extractSingleChapter(${idx})"
-                                style="padding: 6px 12px; font-size: 0.85rem; width: auto;">
-                            Extraer
-                        </button>
-                    </label>
-                `;
-
-                chaptersList.appendChild(itemDiv);
-            });
-
-            previewArea.style.display = 'block';
-        }
-
-        function toggleChapter(idx) {
-            if (chaptersData && chaptersData.chapters[idx]) {
-                const checkbox = document.getElementById(`chapter${idx}`);
-                chaptersData.chapters[idx].selected = checkbox.checked;
-            }
-        }
-
-        function cancelChapters() {
-            document.getElementById('chaptersPreview').style.display = 'none';
-            chaptersData = null;
-        }
-
-        async function extractSingleChapter(idx) {
-            if (!chaptersData) return;
-
-            const chapter = chaptersData.chapters[idx];
-            const logs = document.getElementById('chaptersLogs');
-
-            try {
-                logs.textContent = `Extrayendo "${chapter.title}"...`;
-
-                const useRasterMode = document.getElementById('chapterRasterMode').checked;
-                const fileName = sanitizeFilename(chapter.title || `Capitulo_${idx + 1}`) + '.pdf';
-
-                await extractChapter(
-                    chaptersData.bytes,
-                    chaptersData.password,
-                    chapter,
-                    fileName,
-                    useRasterMode,
-                    logs
-                );
-
-                logs.textContent = `"${chapter.title}" extraído correctamente.`;
-
-            } catch (error) {
-                console.error(error);
-                alert("Error extrayendo capítulo: " + error.message);
-                logs.textContent = "Error.";
-            }
-        }
-
-        async function extractAllChapters() {
-            if (!chaptersData) return;
-
-            const selectedChapters = chaptersData.chapters.filter(ch => ch.selected);
-
-            if (selectedChapters.length === 0) {
-                alert("Debe seleccionar al menos un capítulo.");
-                return;
             }
 
-            const logs = document.getElementById('chaptersLogs');
-            const resultArea = document.getElementById('chaptersResult');
-            const linksContainer = document.getElementById('chaptersDownloadLinks');
-            const extractBtn = document.getElementById('extractAllChaptersBtn');
+            async function extractPagesAsImages(bytes, password, pageIndices, outputName, logs, resultArea) {
+                logs.textContent = "Cargando PDF en modo compatibilidad...";
 
-            extractBtn.disabled = true;
-            extractBtn.textContent = "Extrayendo...";
-            resultArea.style.display = 'none';
-            linksContainer.innerHTML = '';
-
-            const useRasterMode = document.getElementById('chapterRasterMode').checked;
-            const downloadLinks = [];
-
-            try {
-                for (let i = 0; i < selectedChapters.length; i++) {
-                    const chapter = selectedChapters[i];
-                    logs.textContent = `Extrayendo capítulo ${i + 1}/${selectedChapters.length}: "${chapter.title}"...`;
-
-                    const fileName = sanitizeFilename(chapter.title || `Capitulo_${i + 1}`) + '.pdf';
-
-                    const url = await extractChapter(
-                        chaptersData.bytes,
-                        chaptersData.password,
-                        chapter,
-                        fileName,
-                        useRasterMode,
-                        logs,
-                        true // returnURL
-                    );
-
-                    downloadLinks.push({ title: chapter.title, url: url, filename: fileName });
-
-                    // Pequeña pausa entre capítulos
-                    await waitAndClearMemory(100);
-                }
-
-                // Mostrar enlaces de descarga
-                linksContainer.innerHTML = '';
-                downloadLinks.forEach(link => {
-                    const linkDiv = document.createElement('div');
-                    linkDiv.style.cssText = 'margin-bottom: 8px;';
-                    linkDiv.innerHTML = `
-                        <a href="${link.url}" download="${link.filename}"
-                           style="color: var(--primary); text-decoration: none; font-weight: 500;">
-                            📄 ${link.title || link.filename}
-                        </a>
-                    `;
-                    linksContainer.appendChild(linkDiv);
+                const loadingTask = pdfjsLib.getDocument({
+                    data: bytes,
+                    password: password || undefined
                 });
-
-                resultArea.style.display = 'block';
-                document.getElementById('chaptersResultText').textContent =
-                    `¡Éxito! Se han generado ${downloadLinks.length} capítulos. Haga clic en los enlaces para descargar:`;
-                logs.textContent = `Todos los capítulos extraídos correctamente.`;
-
-                // Ocultar preview
-                document.getElementById('chaptersPreview').style.display = 'none';
-
-            } catch (error) {
-                console.error(error);
-                alert("Error durante la extracción: " + error.message);
-                logs.textContent = "Error.";
-            } finally {
-                extractBtn.disabled = false;
-                extractBtn.textContent = "📚 Extraer Todos los Capítulos";
-            }
-        }
-
-        async function extractChapter(bytes, password, chapter, fileName, useRasterMode, logs, returnURL = false) {
-            const startIdx = chapter.startPage - 1; // 0-indexed
-            const endIdx = chapter.endPage - 1;
-            const pageIndices = [];
-
-            for (let i = startIdx; i <= endIdx; i++) {
-                pageIndices.push(i);
-            }
-
-            let pdfBytes;
-
-            if (useRasterMode) {
-                // Modo compatibilidad
-                const loadingTask = pdfjsLib.getDocument({ data: bytes, password: password || undefined });
                 const pdfJsDoc = await loadingTask.promise;
 
                 const newPdf = await PDFLib.PDFDocument.create();
@@ -2755,24 +2691,27 @@
                 const context = canvas.getContext('2d', { willReadFrequently: false, alpha: false });
 
                 for (let i = 0; i < pageIndices.length; i++) {
-                    const pageNum = pageIndices[i] + 1;
+                    const pageNum = pageIndices[i] + 1; // pageIndices is 0-indexed
+                    logs.textContent = `Renderizando página ${pageNum} (${i + 1}/${pageIndices.length})...`;
 
                     const page = await pdfJsDoc.getPage(pageNum);
                     const viewport = page.getViewport({ scale: scale });
 
                     canvas.height = viewport.height;
                     canvas.width = viewport.width;
-                    context.clearRect(0, 0, canvas.width, canvas.height);
 
-                    await page.render({ canvasContext: context, viewport: viewport }).promise;
+                    context.clearRect(0, 0, canvas.width, canvas.height);
+                    await page.render({
+                        canvasContext: context,
+                        viewport: viewport
+                    }).promise;
 
                     const imgDataUrl = canvas.toDataURL('image/jpeg', 0.92);
                     const response = await fetch(imgDataUrl);
                     const imgBytes = await response.arrayBuffer();
-
                     const jpegImage = await newPdf.embedJpg(imgBytes);
-                    const newPage = newPdf.addPage([viewport.width, viewport.height]);
 
+                    const newPage = newPdf.addPage([viewport.width, viewport.height]);
                     newPage.drawImage(jpegImage, {
                         x: 0,
                         y: 0,
@@ -2781,49 +2720,881 @@
                     });
 
                     page.cleanup();
+
+                    if ((i + 1) % 5 === 0) {
+                        await waitAndClearMemory(30);
+                    }
                 }
 
                 canvas.width = 0;
                 canvas.height = 0;
                 pdfJsDoc.destroy();
 
-                pdfBytes = await newPdf.save();
+                logs.textContent = "Guardando PDF...";
+                const pdfBytes = await newPdf.save();
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
 
-            } else {
-                // Modo normal
-                const pdfDoc = await loadPdfWithPasswordFallback(bytes, password);
-                const newPdf = await PDFLib.PDFDocument.create();
+                const link = document.getElementById('searchDownload');
+                link.href = url;
+                link.download = outputName;
 
-                const copiedPages = await newPdf.copyPages(pdfDoc, pageIndices);
-                copiedPages.forEach(p => newPdf.addPage(p));
-
-                pdfBytes = await newPdf.save();
+                resultArea.style.display = 'block';
+                logs.textContent = "¡Proceso terminado exitosamente!";
             }
 
-            const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-            const url = URL.createObjectURL(blob);
+            // --- CHAPTERS EXTRACTION LOGIC ---
+            let chaptersData = null;
 
-            if (returnURL) {
-                return url;
-            } else {
-                // Descargar inmediatamente
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = fileName;
-                a.click();
-                return url;
+            async function detectChapters() {
+                const input = document.getElementById('chaptersFileInput');
+                const patterns = document.getElementById('chapterPattern').value.trim();
+                const useNumbers = document.getElementById('chapterUseNumbers').checked;
+                const logs = document.getElementById('chaptersLogs');
+                const previewArea = document.getElementById('chaptersPreview');
+                const resultArea = document.getElementById('chaptersResult');
+                const btn = document.getElementById('chaptersBtn');
+                const password = document.getElementById('chaptersFilePass').value;
+
+                if (!input.files.length) return;
+                if (!patterns) {
+                    alert("Ingrese al menos un patrón de búsqueda.");
+                    return;
+                }
+
+                btn.disabled = true;
+                btn.textContent = "Detectando...";
+                previewArea.style.display = 'none';
+                resultArea.style.display = 'none';
+                logs.textContent = "Cargando documento...";
+
+                try {
+                    const file = input.files[0];
+                    const bytes = await readPdfBytes(file);
+
+                    // Convertir patrones a array
+                    const patternList = patterns.split(',').map(p => p.trim()).filter(p => p);
+
+                    logs.textContent = "Analizando estructura del documento...";
+
+                    const loadingTask = pdfjsLib.getDocument({ data: bytes, password: password });
+                    const pdfJsDoc = await loadingTask.promise;
+                    const totalPages = pdfJsDoc.numPages;
+
+                    const chapters = [];
+                    logs.textContent = `Buscando capítulos en ${totalPages} páginas...`;
+
+                    // Patrón regex para números romanos y arábigos
+                    const numberPatterns = useNumbers ?
+                        /(\d+|I{1,3}|IV|V|VI{0,3}|IX|X{1,3}|XI{0,3}|XIV|XV|XVI{0,3}|XIX|XX)/i : null;
+
+                    for (let i = 1; i <= totalPages; i++) {
+                        if (i % 10 === 0) logs.textContent = `Analizando página ${i}/${totalPages}...`;
+
+                        const page = await pdfJsDoc.getPage(i);
+                        const textContent = await page.getTextContent();
+                        const pageText = textContent.items.map(item => item.str).join(' ');
+
+                        // Buscar cada patrón
+                        for (const pattern of patternList) {
+                            const normalizedPattern = normalizeText(pattern);
+                            const normalizedText = normalizeText(pageText);
+
+                            let regex;
+                            if (useNumbers) {
+                                // Buscar patrón seguido de número
+                                regex = new RegExp(normalizedPattern + '\\s*' + numberPatterns.source, 'gi');
+                            } else {
+                                // Buscar solo el patrón
+                                regex = new RegExp(normalizedPattern, 'gi');
+                            }
+
+                            const matches = [...normalizedText.matchAll(regex)];
+
+                            if (matches.length > 0) {
+                                // Extraer el título completo del capítulo
+                                const match = matches[0];
+                                const matchIndex = match.index;
+
+                                // Buscar en texto original (no normalizado) para obtener título real
+                                let titleStart = matchIndex;
+                                let titleEnd = Math.min(pageText.length, matchIndex + 100);
+
+                                // Buscar hasta punto, nueva línea o fin de texto
+                                const titleText = pageText.substring(titleStart, titleEnd);
+                                const endMarkers = ['\n', '.', '   ']; // 3 spaces as potential break
+                                let actualEnd = titleText.length;
+
+                                for (const marker of endMarkers) {
+                                    const idx = titleText.indexOf(marker, pattern.length);
+                                    if (idx > 0 && idx < actualEnd) {
+                                        actualEnd = idx;
+                                    }
+                                }
+
+                                const chapterTitle = pageText.substring(titleStart, titleStart + actualEnd).trim();
+
+                                // Evitar duplicados en la misma página
+                                if (!chapters.find(ch => ch.startPage === i)) {
+                                    chapters.push({
+                                        title: chapterTitle,
+                                        startPage: i,
+                                        endPage: null, // Se calculará después
+                                        selected: true
+                                    });
+                                }
+                            }
+                        }
+                    }
+
+                    pdfJsDoc.destroy();
+
+                    if (chapters.length === 0) {
+                        logs.textContent = "No se detectaron capítulos.";
+                        alert("No se encontraron capítulos con los patrones especificados.");
+                        return;
+                    }
+
+                    // Calcular páginas finales
+                    for (let i = 0; i < chapters.length; i++) {
+                        if (i < chapters.length - 1) {
+                            chapters[i].endPage = chapters[i + 1].startPage - 1;
+                        } else {
+                            chapters[i].endPage = totalPages;
+                        }
+                    }
+
+                    // Guardar datos
+                    chaptersData = {
+                        bytes: bytes,
+                        password: password,
+                        chapters: chapters,
+                        totalPages: totalPages
+                    };
+
+                    displayChapters(chapters);
+                    logs.textContent = `Detectados ${chapters.length} capítulos. Revise y confirme la extracción.`;
+
+                } catch (error) {
+                    console.error(error);
+                    alert("Error durante la detección: " + error.message);
+                    logs.textContent = "Error.";
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = "Detectar Capítulos";
+                }
             }
-        }
 
-        function sanitizeFilename(filename) {
-            // Eliminar caracteres no válidos para nombres de archivo
-            return filename
-                .replace(/[<>:"/\\|?*]/g, '_')
-                .replace(/\s+/g, '_')
-                .substring(0, 100); // Limitar longitud
-        }
+            function displayChapters(chapters) {
+                const previewArea = document.getElementById('chaptersPreview');
+                const chaptersList = document.getElementById('chaptersList');
+                chaptersList.innerHTML = '';
+
+                chapters.forEach((chapter, idx) => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.style.cssText = 'padding: 12px; margin-bottom: 10px; background: white; border: 1px solid var(--border); border-radius: 4px;';
+
+                    const pageCount = chapter.endPage - chapter.startPage + 1;
+
+                    itemDiv.innerHTML = `
+                            <label style="display: flex; align-items: start; cursor: pointer; gap: 10px;">
+                                <input type="checkbox" id="chapter${idx}" ${chapter.selected ? 'checked' : ''} onchange="toggleChapter(${idx})" style="margin-top: 3px;">
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600; margin-bottom: 4px;">
+                                        ${chapter.title || 'Capítulo ' + (idx + 1)}
+                                    </div>
+                                    <div style="font-size: 0.85rem; color: var(--text-muted);">
+                                        Páginas ${chapter.startPage} - ${chapter.endPage} (${pageCount} página${pageCount > 1 ? 's' : ''})
+                                    </div>
+                                </div>
+                                <button class="btn" onclick="event.stopPropagation(); extractSingleChapter(${idx})" style="padding: 6px 12px; font-size: 0.85rem; width: auto;">
+                                    Extraer
+                                </button>
+                            </label>
+                        `;
+
+                    chaptersList.appendChild(itemDiv);
+                });
+
+                previewArea.style.display = 'block';
+            }
+
+            function toggleChapter(idx) {
+                if (chaptersData && chaptersData.chapters[idx]) {
+                    const checkbox = document.getElementById(`chapter${idx}`);
+                    chaptersData.chapters[idx].selected = checkbox.checked;
+                }
+            }
+
+            function cancelChapters() {
+                document.getElementById('chaptersPreview').style.display = 'none';
+                chaptersData = null;
+            }
+
+            async function extractSingleChapter(idx) {
+                if (!chaptersData) return;
+
+                const chapter = chaptersData.chapters[idx];
+                const logs = document.getElementById('chaptersLogs');
+
+                try {
+                    logs.textContent = `Extrayendo "${chapter.title}"...`;
+
+                    const useRasterMode = document.getElementById('chapterRasterMode').checked;
+                    const fileName = sanitizeFilename(chapter.title || `Capitulo_${idx + 1}`) + '.pdf';
+
+                    await extractChapter(
+                        chaptersData.bytes,
+                        chaptersData.password,
+                        chapter,
+                        fileName,
+                        useRasterMode,
+                        logs
+                    );
+
+                    logs.textContent = `"${chapter.title}" extraído correctamente.`;
+
+                } catch (error) {
+                    console.error(error);
+                    alert("Error extrayendo capítulo: " + error.message);
+                    logs.textContent = "Error.";
+                }
+            }
+
+            async function extractAllChapters() {
+                if (!chaptersData) return;
+
+                const selectedChapters = chaptersData.chapters.filter(ch => ch.selected);
+
+                if (selectedChapters.length === 0) {
+                    alert("Debe seleccionar al menos un capítulo.");
+                    return;
+                }
+
+                const logs = document.getElementById('chaptersLogs');
+                const resultArea = document.getElementById('chaptersResult');
+                const linksContainer = document.getElementById('chaptersDownloadLinks');
+                const extractBtn = document.getElementById('extractAllChaptersBtn');
+
+                extractBtn.disabled = true;
+                extractBtn.textContent = "Extrayendo...";
+                resultArea.style.display = 'none';
+                linksContainer.innerHTML = '';
+
+                const useRasterMode = document.getElementById('chapterRasterMode').checked;
+                const downloadLinks = [];
+
+                try {
+                    for (let i = 0; i < selectedChapters.length; i++) {
+                        const chapter = selectedChapters[i];
+                        logs.textContent = `Extrayendo capítulo ${i + 1}/${selectedChapters.length}: "${chapter.title}"...`;
+
+                        const fileName = sanitizeFilename(chapter.title || `Capitulo_${i + 1}`) + '.pdf';
+
+                        const url = await extractChapter(
+                            chaptersData.bytes,
+                            chaptersData.password,
+                            chapter,
+                            fileName,
+                            useRasterMode,
+                            logs,
+                            true // returnURL
+                        );
+
+                        downloadLinks.push({ title: chapter.title, url: url, filename: fileName });
+
+                        // Pequeña pausa entre capítulos
+                        await waitAndClearMemory(100);
+                    }
+
+                    // Mostrar enlaces de descarga
+                    linksContainer.innerHTML = '';
+                    downloadLinks.forEach(link => {
+                        const linkDiv = document.createElement('div');
+                        linkDiv.style.cssText = 'margin-bottom: 8px;';
+                        linkDiv.innerHTML = `
+                                <a href="${link.url}" download="${link.filename}" style="color: var(--primary); text-decoration: none; font-weight: 500;">
+                                    📄 ${link.title || link.filename}
+                                </a>
+                            `;
+                        linksContainer.appendChild(linkDiv);
+                    });
+
+                    resultArea.style.display = 'block';
+                    document.getElementById('chaptersResultText').textContent = `¡Éxito! Se han generado ${downloadLinks.length} capítulos. Haga clic en los enlaces para descargar:`;
+                    logs.textContent = "Todos los capítulos extraídos correctamente.";
+
+                    // Ocultar preview
+                    document.getElementById('chaptersPreview').style.display = 'none';
+
+                } catch (error) {
+                    console.error(error);
+                    alert("Error durante la extracción: " + error.message);
+                    logs.textContent = "Error.";
+                } finally {
+                    extractBtn.disabled = false;
+                    extractBtn.textContent = "📚 Extraer Todos los Capítulos";
+                }
+            }
+
+            async function extractChapter(bytes, password, chapter, fileName, useRasterMode, logs, returnURL = false) {
+                const startIdx = chapter.startPage - 1; // 0-indexed
+                const endIdx = chapter.endPage - 1;
+                const pageIndices = [];
+
+                for (let i = startIdx; i <= endIdx; i++) {
+                    pageIndices.push(i);
+                }
+
+                let pdfBytes;
+                if (useRasterMode) {
+                    // Modo compatibilidad
+                    const loadingTask = pdfjsLib.getDocument({
+                        data: bytes,
+                        password: password || undefined
+                    });
+                    const pdfJsDoc = await loadingTask.promise;
+
+                    const newPdf = await PDFLib.PDFDocument.create();
+                    const scale = 1.5;
+
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d', { willReadFrequently: false, alpha: false });
+
+                    for (let i = 0; i < pageIndices.length; i++) {
+                        const pageNum = pageIndices[i] + 1;
+                        const page = await pdfJsDoc.getPage(pageNum);
+                        const viewport = page.getViewport({ scale: scale });
+
+                        canvas.height = viewport.height;
+                        canvas.width = viewport.width;
+
+                        context.clearRect(0, 0, canvas.width, canvas.height);
+                        await page.render({
+                            canvasContext: context,
+                            viewport: viewport
+                        }).promise;
+
+                        const imgDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+                        const response = await fetch(imgDataUrl);
+                        const imgBytes = await response.arrayBuffer();
+                        const jpegImage = await newPdf.embedJpg(imgBytes);
+
+                        const newPage = newPdf.addPage([viewport.width, viewport.height]);
+                        newPage.drawImage(jpegImage, {
+                            x: 0,
+                            y: 0,
+                            width: viewport.width,
+                            height: viewport.height,
+                        });
+
+                        page.cleanup();
+                    }
+
+                    canvas.width = 0;
+                    canvas.height = 0;
+                    pdfJsDoc.destroy();
+
+                    pdfBytes = await newPdf.save();
+                } else {
+                    // Modo normal
+                    const pdfDoc = await loadPdfWithPasswordFallback(bytes, password);
+                    const newPdf = await PDFLib.PDFDocument.create();
+
+                    const copiedPages = await newPdf.copyPages(pdfDoc, pageIndices);
+                    copiedPages.forEach(p => newPdf.addPage(p));
+
+                    pdfBytes = await newPdf.save();
+                }
+
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+
+                if (returnURL) {
+                    return url;
+                } else {
+                    // Descargar inmediatamente
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = fileName;
+                    a.click();
+                    return url;
+                }
+            }
+
+            function sanitizeFilename(filename) {
+                // Eliminar caracteres no válidos para nombres de archivo
+                return filename.replace(/[<>:"/\\|?*]/g, '_').replace(/\s+/g, '_').substring(0, 100);
+            }
+
+            // --- TRANSLATE / READER LOGIC ---
+
+            let translateState = {
+                pdfDoc: null,
+                currentPage: 1,
+                totalPages: 0,
+                scale: 1.0,
+                autoFit: true,
+                textLayer: null
+            };
+
+            async function handleTranslateFileBase(input) {
+                if (!input.files.length) return;
+                const file = input.files[0];
+                try {
+                    const bytes = await readPdfBytes(file);
+                    const loadingTask = pdfjsLib.getDocument({ data: bytes });
+                    translateState.pdfDoc = await loadingTask.promise;
+                    translateState.totalPages = translateState.pdfDoc.numPages;
+                    translateState.currentPage = 1;
+
+                    document.getElementById('transPageLabel').textContent = `1 / ${translateState.totalPages}`;
+                    renderTranslatePage(1);
+                } catch (e) {
+                    console.error(e);
+                    alert("Error cargando PDF: " + e.message);
+                }
+            }
+
+            async function changeTranslatePage(delta) {
+                if (!translateState.pdfDoc) return;
+                const newPage = translateState.currentPage + delta;
+                if (newPage >= 1 && newPage <= translateState.totalPages) {
+                    translateState.currentPage = newPage;
+                    document.getElementById('transPageLabel').textContent = `${newPage} / ${translateState.totalPages}`;
+                    renderTranslatePage(newPage);
+                }
+            }
+
+            async function renderTranslatePage(pageNum) {
+                const pdf = translateState.pdfDoc;
+                const page = await pdf.getPage(pageNum);
+
+                // Calculate Scale
+                const container = document.getElementById('translateCanvas').parentElement.parentElement;
+                const containerWidth = container.clientWidth - 40; // padding
+
+                let scale = translateState.scale;
+                if (translateState.autoFit) {
+                    const unscaledViewport = page.getViewport({ scale: 1.0 });
+                    scale = containerWidth / unscaledViewport.width;
+                    translateState.scale = scale; // Sync
+                }
+
+                const viewport = page.getViewport({ scale: scale });
+
+                // Canvas
+                const canvas = document.getElementById('translateCanvas');
+                const context = canvas.getContext('2d');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+
+                // Render Page
+                const renderContext = {
+                    canvasContext: context,
+                    viewport: viewport
+                };
+                await page.render(renderContext).promise;
+
+                // --- Text Layer ---
+                const textLayerDiv = document.getElementById('textLayer');
+                textLayerDiv.innerHTML = ''; // Clear previous
+                textLayerDiv.style.height = viewport.height + 'px';
+                textLayerDiv.style.width = viewport.width + 'px';
+
+                const textContent = await page.getTextContent();
+
+                // PDFJS renderTextLayer
+                pdfjsLib.renderTextLayer({
+                    textContent: textContent,
+                    container: textLayerDiv,
+                    viewport: viewport,
+                    textDivs: []
+                });
+            }
+
+            function setTranslateZoom(type) {
+                if (type === 'fit') {
+                    translateState.autoFit = true;
+                }
+                renderTranslatePage(translateState.currentPage);
+            }
+
+            function changeTranslateZoom(delta) {
+                translateState.autoFit = false;
+                translateState.scale = Math.max(0.5, translateState.scale + delta);
+                renderTranslatePage(translateState.currentPage);
+            }
+
+            // Translation
+            function getSelectedText() {
+                const sel = window.getSelection();
+                return sel.toString().trim();
+            }
+
+            function translateSelection() {
+                const text = getSelectedText();
+                if (!text) {
+                    alert("Por favor, selecciona texto del PDF primero.");
+                    return;
+                }
+                const lang = document.getElementById('transLang').value;
+                const url = `https://translate.google.com/?sl=auto&tl=${lang}&text=${encodeURIComponent(text)}`;
+                window.open(url, '_blank');
+            }
+
+            // TTS
+            let synth = window.speechSynthesis;
+            let voices = [];
+
+            function loadVoices() {
+                voices = synth.getVoices();
+                const select = document.getElementById('ttsVoice');
+                select.innerHTML = '';
+
+                voices.forEach((voice, i) => {
+                    const option = document.createElement('option');
+                    option.value = i;
+                    option.textContent = `${voice.name} (${voice.lang})`;
+
+                    // Pre-select Google Español or similar
+                    if (voice.name.includes('Google') && voice.lang.includes('es')) {
+                        option.selected = true;
+                    }
+                    select.appendChild(option);
+                });
+            }
+
+            // Voice loading is async
+            if (speechSynthesis.onvoiceschanged !== undefined) {
+                speechSynthesis.onvoiceschanged = loadVoices;
+            }
+
+            // Initial try
+            loadVoices();
+
+            function speakSelection() {
+                const text = getSelectedText();
+                if (!text) {
+                    alert("Selecciona texto para leer.");
+                    return;
+                }
+                stopSpeech();
+
+                const utterance = new SpeechSynthesisUtterance(text);
+                const voiceIndex = document.getElementById('ttsVoice').value;
+                if (voiceIndex) {
+                    utterance.voice = voices[voiceIndex];
+                }
+                utterance.rate = parseFloat(document.getElementById('ttsRate').value);
+                synth.speak(utterance);
+            }
+
+            function stopSpeech() {
+                if (synth.speaking) {
+                    synth.cancel();
+                }
+            }
+
+            // --- PODCAST LOGIC ---
+
+            let podcastState = {
+                pdfDoc: null,
+                currentPage: 1,
+                totalPages: 0,
+                scale: 1.2,
+                audioBlob: null,
+                audioUrl: null,
+                placementMode: false,
+                marker: null, // { page, x, y }
+                recorder: null,
+                chunks: [],
+                timerInterval: null
+            };
+
+            async function handlePodcastFileBase(input) {
+                if (!input.files.length) return;
+                const file = input.files[0];
+                try {
+                    const bytes = await readPdfBytes(file);
+                    const loadingTask = pdfjsLib.getDocument({ data: bytes });
+                    podcastState.pdfDoc = await loadingTask.promise;
+                    podcastState.totalPages = podcastState.pdfDoc.numPages;
+                    podcastState.currentPage = 1;
+                    podcastState.marker = null; // reset
+
+                    document.getElementById('podcastPageLabel').textContent = `1 / ${podcastState.totalPages}`;
+                    renderPodcastPage(1);
+                } catch (e) {
+                    console.error(e);
+                    alert("Error cargando PDF: " + e.message);
+                }
+            }
+
+            async function changePodcastPage(delta) {
+                if (!podcastState.pdfDoc) return;
+                const newPage = podcastState.currentPage + delta;
+                if (newPage >= 1 && newPage <= podcastState.totalPages) {
+                    podcastState.currentPage = newPage;
+                    document.getElementById('podcastPageLabel').textContent = `${newPage} / ${podcastState.totalPages}`;
+                    renderPodcastPage(newPage);
+                }
+            }
+
+            async function renderPodcastPage(pageNum) {
+                const pdf = podcastState.pdfDoc;
+                const page = await pdf.getPage(pageNum);
+                const viewport = page.getViewport({ scale: podcastState.scale });
+
+                const canvas = document.getElementById('podcastCanvas');
+                const ctx = canvas.getContext('2d');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+
+                const renderContext = {
+                    canvasContext: ctx,
+                    viewport: viewport
+                };
+                await page.render(renderContext).promise;
+
+                // Draw Marker if on this page
+                if (podcastState.marker && podcastState.marker.page === pageNum) {
+                    const x = podcastState.marker.x;
+                    const y = podcastState.marker.y;
+
+                    ctx.font = "30px Arial";
+                    ctx.textAlign = "center";
+                    ctx.fillText("🎙️", x, y);
+
+                    ctx.font = "12px Arial";
+                    ctx.fillStyle = "red";
+                    ctx.fillText("Podcast", x, y + 15);
+                }
+
+                // Attach click listener only once or handle globally
+                canvas.onclick = handlePodcastCanvasClick;
+            }
+
+            function handlePodcastCanvasClick(e) {
+                if (!podcastState.placementMode) return;
+
+                const rect = e.target.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                podcastState.marker = {
+                    page: podcastState.currentPage,
+                    x: x,
+                    y: y
+                };
+
+                podcastState.placementMode = false;
+                document.getElementById('podcastCanvas').style.cursor = 'default';
+                renderPodcastPage(podcastState.currentPage);
+
+                document.getElementById('btnSavePodcast').disabled = false;
+                alert("Ubicación marcada. Ahora puedes guardar el PDF.");
+            }
+
+            // Recorder
+            async function startRecording() {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    podcastState.recorder = new MediaRecorder(stream);
+                    podcastState.chunks = [];
+
+                    podcastState.recorder.ondataavailable = e => podcastState.chunks.push(e.data);
+                    podcastState.recorder.onstop = e => {
+                        const blob = new Blob(podcastState.chunks, { type: 'audio/webm' }); // or mp3
+                        podcastState.audioBlob = blob;
+                        podcastState.audioUrl = URL.createObjectURL(blob);
+
+                        // Preview
+                        const audio = document.getElementById('audioPreview');
+                        audio.src = podcastState.audioUrl;
+                        document.getElementById('audioPreviewContainer').style.display = 'block';
+                    };
+
+                    podcastState.recorder.start();
+                    startVisualizer(stream);
+                    startTimer();
+
+                    document.getElementById('btnRecordStart').disabled = true;
+                    document.getElementById('btnRecordStop').disabled = false;
+                    document.getElementById('btnRecordStart').classList.add('recording-active');
+
+                } catch (e) {
+                    alert("No se pudo acceder al micrófono: " + e.message + "\nIntenta usar 'Subir archivo' si estás en local.");
+                }
+            }
+
+            function stopRecording() {
+                if (podcastState.recorder) {
+                    podcastState.recorder.stop();
+                    stopTimer();
+                    stopVisualizer();
+
+                    document.getElementById('btnRecordStart').disabled = false;
+                    document.getElementById('btnRecordStop').disabled = true;
+                    document.getElementById('btnRecordStart').classList.remove('recording-active');
+                }
+            }
+
+            // Visualizer (Simple)
+            let audioContext, analyser, dataArray, visualizerId;
+
+            function startVisualizer(stream) {
+                if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const source = audioContext.createMediaStreamSource(stream);
+                analyser = audioContext.createAnalyser();
+                source.connect(analyser);
+                analyser.fftSize = 256;
+                const bufferLength = analyser.frequencyBinCount;
+                dataArray = new Uint8Array(bufferLength);
+
+                const canvas = document.getElementById('audioVisualizer');
+                const ctx = canvas.getContext('2d');
+
+                function draw() {
+                    visualizerId = requestAnimationFrame(draw);
+                    analyser.getByteFrequencyData(dataArray);
+
+                    ctx.fillStyle = '#222';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    const barWidth = (canvas.width / bufferLength) * 2.5;
+                    let barHeight;
+                    let x = 0;
+
+                    for (let i = 0; i < bufferLength; i++) {
+                        barHeight = dataArray[i] / 2;
+                        ctx.fillStyle = 'rgb(' + (barHeight + 100) + ',50,50)';
+                        ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+                        x += barWidth + 1;
+                    }
+                }
+                draw();
+            }
+
+            function stopVisualizer() {
+                cancelAnimationFrame(visualizerId);
+            }
+
+            // Timer
+            let startTime;
+
+            function startTimer() {
+                startTime = Date.now();
+                podcastState.timerInterval = setInterval(() => {
+                    const diff = Math.floor((Date.now() - startTime) / 1000);
+                    const m = Math.floor(diff / 60).toString().padStart(2, '0');
+                    const s = (diff % 60).toString().padStart(2, '0');
+                    document.getElementById('recordTimer').textContent = `${m}:${s}`;
+                }, 1000);
+            }
+
+            function stopTimer() {
+                clearInterval(podcastState.timerInterval);
+            }
+
+            function useRecordedAudio() {
+                document.getElementById('btnPlacePodcast').disabled = false;
+                alert("Audio grabado seleccionado. Ahora haz clic en 'Colocar en PDF'.");
+            }
+
+            function handleAudioUpload(input) {
+                if (!input.files.length) return;
+                const file = input.files[0];
+                podcastState.audioBlob = file; // Use file directly as blob
+                document.getElementById('btnPlacePodcast').disabled = false;
+                alert("Audio subido seleccionado. Ahora haz clic en 'Colocar en PDF'.");
+            }
+
+            function activatePodcastPlacement() {
+                if (!podcastState.pdfDoc) {
+                    alert("Carga un PDF primero");
+                    return;
+                }
+                podcastState.placementMode = true;
+                document.getElementById('podcastCanvas').style.cursor = 'crosshair';
+                alert("Haz clic en la página donde quieras poner el icono del Podcast.");
+            }
+
+            async function savePodcastPDF() {
+                if (!podcastState.audioBlob || !podcastState.marker) return;
+
+                const btn = document.getElementById('btnSavePodcast');
+                btn.textContent = "Guardando...";
+                btn.disabled = true;
+
+                try {
+                    // 1. Load PDF
+                    const input = document.getElementById('podcastFileInput');
+                    const bytes = await readPdfBytes(input.files[0]);
+                    const pdfDoc = await PDFLib.PDFDocument.load(bytes);
+
+                    // 2. Attach File
+                    // Convert blob to array buffer
+                    const audioBytes = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(new Uint8Array(reader.result));
+                        reader.readAsArrayBuffer(podcastState.audioBlob);
+                    });
+
+                    const audioName = "podcast_recording.webm"; // or infer ext
+                    await pdfDoc.attach(audioBytes, audioName, {
+                        mimeType: 'audio/webm',
+                        description: 'Podcast grabado',
+                        creationDate: new Date(),
+                        modificationDate: new Date(),
+                    });
+
+                    // 3. Draw Marker
+                    const page = pdfDoc.getPages()[podcastState.marker.page - 1];
+                    const { width, height } = page.getSize();
+
+                    // Transform Coords (Canvas -> PDF)
+                    // Reusing transform logic or implementing simple version for this tab
+                    // scale = 1.2
+                    // canvasY is top-down, PDF is bottom-up
+                    // x = x / scale
+                    // y = height - (y / scale)
+
+                    const pdfX = podcastState.marker.x / podcastState.scale;
+                    const pdfY = height - (podcastState.marker.y / podcastState.scale);
+
+                    page.drawText('🎙️', {
+                        x: pdfX - 15, // center approx
+                        y: pdfY,
+                        size: 30,
+                        color: PDFLib.rgb(1, 0, 0)
+                    });
+                    page.drawText('CLICK (Ver Adjuntos)', {
+                        x: pdfX - 40,
+                        y: pdfY - 15,
+                        size: 10,
+                        color: PDFLib.rgb(1, 0, 0)
+                    });
+
+                    // Save
+                    const pdfBytes = await pdfDoc.save();
+                    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                    const url = URL.createObjectURL(blob);
+
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = "podcast_doc.pdf";
+                    a.click();
+
+                } catch (e) {
+                    console.error(e);
+                    alert("Error guardando: " + e.message);
+                } finally {
+                    btn.textContent = "💾 Guardar PDF";
+                    btn.disabled = false;
+                }
+            }
     </script>
-
 </body>
 
 </html>
