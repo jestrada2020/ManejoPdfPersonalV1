@@ -1,0 +1,3 @@
+function startMediaAnnotation() {
+    startAnnotation('media');
+}
