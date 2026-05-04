@@ -1,6 +1,10 @@
 // ============================================================
-// Lector Bilingüe / Vocabulario Interactivo
-// Lee PDF en voz alta resaltando palabra/frase actual + traducción
+// Lector Bilingüe / Vocabulario Interactivo v3
+// FLUJO CORREGIDO:
+// 1. Usuario elige idioma de narración (targetLang)
+// 2. App traduce texto original → idioma de narración
+// 3. App NARRA la TRADUCCIÓN con voz
+// 4. App RESALTA la palabra/frase ORIGINAL en el PDF
 // ============================================================
 
 let vocabState = {
@@ -12,25 +16,49 @@ let vocabState = {
     isPlaying: false,
     isPaused: false,
     currentUnitIndex: 0,
-    readingUnits: [],      // [{ text, spans: [indices], translation, isStopWord }]
-    textSpans: [],         // spans del textLayer
+    readingUnits: [],      // [{ originalText, translatedText, wordSpans: [HTMLElement], isStopWord }]
+    allWordSpans: [],
     utterance: null,
-    sourceLang: 'en',
-    targetLang: 'es',
+    sourceLang: 'en',      // idioma del PDF (detectado o elegido)
+    targetLang: 'es',      // idioma de NARRACIÓN
     rate: 0.9,
     mode: 'phrase',        // 'phrase' | 'word'
-    translationsCache: {}, // palabra -> traducción
-    translationPromise: null
+    translationsCache: {},
+    voicesLoaded: false
 };
 
-// Stop words comunes en varios idiomas (para omitir en modo vocabulario)
 const STOP_WORDS = new Set([
-    'the','a','an','and','or','but','in','on','at','to','for','of','with','by','from','as','is','was','are','were','be','been','being','have','has','had','do','does','did','will','would','could','should','may','might','must','shall','can','need','dare','ought','used','won','wouldn','couldn','shouldn','can','don','doesn','didn','hasn','haven','hadn','isn','aren','wasn','weren','ll','re','ve','s','d','m',
-    'el','la','los','las','un','una','unos','unas','y','o','pero','en','de','a','por','para','con','sin','sobre','entre','hacia','desde','hasta','durante','mediante','según','ante','bajo','contra','hasta','según','tras','durante','mediante','excepto','salvo','más','menos','tan','tanto','tal','tales','cual','cuales','cuya','cuyas','cuyo','cuyos','donde','cuando','como','que','quien','quienes','cuyo','cuyos','cuya','cuyas','cuanto','cuanta','cuantos','cuantas','cual','cuales','cuya','cuyas','yo','tú','él','ella','ello','nosotros','nosotras','vosotros','vosotras','ellos','ellas','me','te','se','nos','os','le','les','lo','la','los','las','mío','mía','míos','mías','tuyo','tuya','tuyos','tuyas','suyo','suya','suyos','suyas','nuestro','nuestra','nuestros','nuestras','vuestro','vuestra','vuestros','vuestras','este','esta','esto','estos','estas','ese','esa','eso','esos','esas','aquel','aquella','aquello','aquellos','aquellas','mí','ti','sí','conmigo','contigo','consigo','algo','nada','alguien','nadie','alguno','alguna','algunos','algunas','ninguno','ninguna','ningunos','ningunas','mucho','mucha','muchos','muchas','poco','poca','pocos','pocas','demasiado','demasiada','demasiados','demasiadas','todo','toda','todos','todas','varios','varias','otro','otra','otros','otras','mismo','misma','mismos','mismas','tal','tales','cual','cuales','cuyo','cuyos','cuya','cuyas','quien','quienes','cual','cuales','cuanto','cuanta','cuantos','cuantas'
+    'the','a','an','and','or','but','in','on','at','to','for','of','with','by','from','as','is','was','are','were','be','been','being','have','has','had','do','does','did','will','would','could','should','may','might','must','shall','can','need','dare','ought','used','won','wouldn','couldn','shouldn','don','doesn','didn','hasn','haven','hadn','isn','aren','wasn','weren',
+    'el','la','los','las','un','una','unos','unas','y','o','pero','en','de','a','por','para','con','sin','sobre','entre','hacia','desde','hasta','durante','mediante','según','ante','bajo','contra','tras','excepto','salvo','más','menos','tan','tanto','tal','tales','cual','cuales','cuya','cuyas','cuyo','cuyos','donde','cuando','como','que','quien','quienes','cuanto','cuanta','cuantos','cuantas',
+    'yo','tú','él','ella','ello','nosotros','nosotras','vosotros','vosotras','ellos','ellas','me','te','se','nos','os','le','les','lo','la','los','las','mío','mía','míos','mías','tuyo','tuya','tuyos','tuyas','suyo','suya','suyos','suyas','nuestro','nuestra','nuestros','nuestras','vuestro','vuestra','vuestros','vuestras',
+    'este','esta','esto','estos','estas','ese','esa','eso','esos','esas','aquel','aquella','aquello','aquellos','aquellas','mí','ti','sí','conmigo','contigo','consigo',
+    'algo','nada','alguien','nadie','alguno','alguna','algunos','algunas','ninguno','ninguna','ningunos','ningunas','mucho','mucha','muchos','muchas','poco','poca','pocos','pocas','demasiado','demasiada','demasiados','demasiadas','todo','toda','todos','todas','varios','varias','otro','otra','otros','otras','mismo','misma','mismos','mismas'
 ]);
 
 function isStopWord(word) {
-    return STOP_WORDS.has(word.toLowerCase().replace(/[^a-záéíóúüñ]/gi, ''));
+    const clean = word.toLowerCase().replace(/[^a-záéíóúüñ]/gi, '');
+    return clean.length < 2 || STOP_WORDS.has(clean);
+}
+
+// ============================================================
+// VOICES
+// ============================================================
+function loadVoices() {
+    vocabState.voicesLoaded = window.speechSynthesis.getVoices().length > 0;
+}
+if (speechSynthesis.onvoiceschanged !== undefined) {
+    speechSynthesis.onvoiceschanged = loadVoices;
+}
+loadVoices();
+
+function getPreferredVoice(lang) {
+    if (!vocabState.voicesLoaded) loadVoices();
+    const voices = window.speechSynthesis.getVoices();
+    const langLower = lang.toLowerCase();
+    return voices.find(v =>
+        v.lang.toLowerCase().startsWith(langLower) &&
+        (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Neural'))
+    ) || voices.find(v => v.lang.toLowerCase().startsWith(langLower));
 }
 
 // ============================================================
@@ -52,11 +80,9 @@ async function handleVocabFile(input) {
         vocabState.readingUnits = [];
         vocabState.translationsCache = {};
 
-        document.getElementById('vocabPageLabel').textContent = `1 / ${vocabState.totalPages}`;
-    document.getElementById('vocabPageLabelFloating').textContent = `1 / ${vocabState.totalPages}`;
         await renderVocabPage(1);
-        status.textContent = 'Listo. Presiona ▶️ para comenzar la lectura.';
-        showToast('PDF cargado. Presiona Play para empezar.', 'success');
+        status.textContent = 'Listo. Presiona ▶️ Leer para escuchar la traducción narrada.';
+        showToast('PDF cargado. La voz narrará en: ' + langName(vocabState.targetLang), 'success');
     } catch (e) {
         console.error(e);
         status.textContent = 'Error cargando PDF.';
@@ -64,8 +90,13 @@ async function handleVocabFile(input) {
     }
 }
 
+function langName(code) {
+    const names = { es: 'Español', en: 'Inglés', fr: 'Francés', de: 'Alemán', it: 'Italiano', pt: 'Portugués' };
+    return names[code] || code;
+}
+
 // ============================================================
-// PAGE RENDERING
+// PAGE RENDERING + TEXTLAYER SPLITTING
 // ============================================================
 async function renderVocabPage(pageNum) {
     if (!vocabState.pdfDoc) return;
@@ -104,61 +135,108 @@ async function renderVocabPage(pageNum) {
     });
     await textLayerTask.promise;
 
-    vocabState.textSpans = Array.from(textLayerDiv.querySelectorAll('span'));
+    splitTextLayerIntoWords(textLayerDiv);
+
     vocabState.currentPage = pageNum;
     document.getElementById('vocabPageLabel').textContent = `${pageNum} / ${vocabState.totalPages}`;
     document.getElementById('vocabPageLabelFloating').textContent = `${pageNum} / ${vocabState.totalPages}`;
 
-    buildReadingUnits(textContent.items);
+    buildReadingUnits();
     clearVocabHighlight();
     updateVocabPanel(null);
+}
+
+function splitTextLayerIntoWords(textLayerDiv) {
+    vocabState.allWordSpans = [];
+    const originalSpans = Array.from(textLayerDiv.querySelectorAll('span'));
+    let groupId = 0;
+
+    originalSpans.forEach(span => {
+        const text = span.textContent;
+        if (!text || text.trim().length === 0) {
+            span.dataset.vocabGroup = groupId;
+            vocabState.allWordSpans.push(span);
+            groupId++;
+            return;
+        }
+
+        const tokens = text.split(/(\s+)/).filter(t => t.length > 0);
+        if (tokens.length <= 1) {
+            span.classList.add('vocab-word');
+            span.dataset.vocabGroup = groupId;
+            vocabState.allWordSpans.push(span);
+            groupId++;
+            return;
+        }
+
+        const parent = span.parentNode;
+        const fragment = document.createDocumentFragment();
+
+        tokens.forEach(token => {
+            const subSpan = document.createElement('span');
+            subSpan.textContent = token;
+            subSpan.className = span.className;
+            subSpan.classList.add('vocab-word');
+            subSpan.style.cssText = span.style.cssText;
+            subSpan.dataset.vocabGroup = groupId;
+            fragment.appendChild(subSpan);
+            vocabState.allWordSpans.push(subSpan);
+        });
+
+        parent.replaceChild(fragment, span);
+        groupId++;
+    });
 }
 
 // ============================================================
 // READING UNITS BUILDER
 // ============================================================
-function buildReadingUnits(items) {
+function buildReadingUnits() {
     const units = [];
+    const spans = vocabState.allWordSpans;
     const mode = vocabState.mode;
 
     if (mode === 'phrase') {
-        // Agrupar por línea (Y similar) en frases
-        let current = { text: '', spanIndices: [] };
-        let lastY = null;
+        let current = { originalText: '', wordSpans: [] };
+        let lastGroup = null;
 
-        items.forEach((item, idx) => {
-            const str = (item.str || '').trim();
-            if (!str) return;
+        spans.forEach(span => {
+            const text = span.textContent || '';
+            const group = span.dataset.vocabGroup;
 
-            const y = item.transform ? item.transform[5] : 0;
-            if (lastY !== null && Math.abs(y - lastY) > 5) {
-                if (current.text) {
-                    units.push({ ...current, translation: '', isStopWord: false });
-                }
-                current = { text: '', spanIndices: [] };
+            if (lastGroup !== null && group !== lastGroup && current.originalText.trim()) {
+                units.push({
+                    originalText: current.originalText.trim(),
+                    translatedText: '',
+                    wordSpans: current.wordSpans,
+                    isStopWord: false
+                });
+                current = { originalText: '', wordSpans: [] };
             }
 
-            current.text += (current.text ? ' ' : '') + str;
-            current.spanIndices.push(idx);
-            lastY = y;
+            current.originalText += text;
+            current.wordSpans.push(span);
+            lastGroup = group;
         });
 
-        if (current.text) {
-            units.push({ ...current, translation: '', isStopWord: false });
+        if (current.originalText.trim()) {
+            units.push({
+                originalText: current.originalText.trim(),
+                translatedText: '',
+                wordSpans: current.wordSpans,
+                isStopWord: false
+            });
         }
     } else {
-        // Modo palabra por palabra
-        items.forEach((item, idx) => {
-            const str = item.str || '';
-            const words = str.split(/\s+/).filter(w => w.length > 0);
-            words.forEach(word => {
-                const clean = word.replace(/[^a-zA-ZáéíóúüñÁÉÍÓÚÜÑ]/g, '');
-                units.push({
-                    text: word,
-                    spanIndices: [idx],
-                    translation: '',
-                    isStopWord: clean.length < 2 || isStopWord(clean)
-                });
+        spans.forEach(span => {
+            const text = span.textContent || '';
+            if (!text.trim()) return;
+            const clean = text.replace(/[^a-zA-ZáéíóúüñÁÉÍÓÚÜÑ]/g, '');
+            units.push({
+                originalText: text,
+                translatedText: '',
+                wordSpans: [span],
+                isStopWord: clean.length < 2 || isStopWord(clean)
             });
         });
     }
@@ -166,29 +244,27 @@ function buildReadingUnits(items) {
     vocabState.readingUnits = units;
     vocabState.currentUnitIndex = 0;
 
-    // Precargar traducciones de la primera tanda
+    // Pre-translate first batch so narration can start immediately
     prefetchTranslations(units.slice(0, 30));
 }
 
 // ============================================================
-// TRANSLATION WITH CACHE
+// TRANSLATION (source → target/narration language)
 // ============================================================
 async function prefetchTranslations(units) {
     const toTranslate = [...new Set(
         units
-            .filter(u => !u.isStopWord && !u.translation && !vocabState.translationsCache[u.text])
-            .map(u => u.text)
-    )].slice(0, 25); // max 25 palabras por página
+            .filter(u => !u.isStopWord && !u.translatedText && !vocabState.translationsCache[u.originalText])
+            .map(u => u.originalText)
+    )].slice(0, 25);
 
     if (toTranslate.length === 0) return;
 
-    // Traducir con concurrencia limitada (máx 5 en paralelo)
     const CONCURRENCY = 5;
-    const results = new Map();
 
-    async function translateWord(word) {
+    async function doTranslate(text) {
         try {
-            const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${vocabState.sourceLang}&tl=${vocabState.targetLang}&dt=t&q=${encodeURIComponent(word)}`;
+            const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${vocabState.sourceLang}&tl=${vocabState.targetLang}&dt=t&q=${encodeURIComponent(text)}`;
             const response = await fetch(url);
             const data = await response.json();
             return data[0].map(item => item[0]).join('');
@@ -199,66 +275,82 @@ async function prefetchTranslations(units) {
 
     for (let i = 0; i < toTranslate.length; i += CONCURRENCY) {
         const batch = toTranslate.slice(i, i + CONCURRENCY);
-        const batchResults = await Promise.all(batch.map(async (word) => {
-            const t = await translateWord(word);
-            return { word, t };
-        }));
-        batchResults.forEach(({ word, t }) => {
-            if (t) vocabState.translationsCache[word] = t;
+        const results = await Promise.all(batch.map(doTranslate));
+        results.forEach((t, idx) => {
+            if (t) vocabState.translationsCache[batch[idx]] = t;
         });
     }
 
-    // Aplicar cache a units
     units.forEach(u => {
-        if (vocabState.translationsCache[u.text]) {
-            u.translation = vocabState.translationsCache[u.text];
+        if (vocabState.translationsCache[u.originalText]) {
+            u.translatedText = vocabState.translationsCache[u.originalText];
         }
     });
 }
 
 async function translateUnit(unit) {
-    if (unit.translation) return unit.translation;
-    if (unit.isStopWord) return '(palabra común)';
-    if (vocabState.translationsCache[unit.text]) {
-        unit.translation = vocabState.translationsCache[unit.text];
-        return unit.translation;
+    if (unit.translatedText) return unit.translatedText;
+    if (unit.isStopWord) {
+        // For stop words, we still translate them for narration flow
+        const stopTranslations = {
+            'the': 'el', 'a': 'un', 'an': 'un', 'and': 'y', 'or': 'o', 'but': 'pero',
+            'in': 'en', 'on': 'en', 'at': 'en', 'to': 'a', 'for': 'para', 'of': 'de',
+            'with': 'con', 'by': 'por', 'from': 'desde', 'as': 'como', 'is': 'es',
+            'el': 'the', 'la': 'the', 'los': 'the', 'las': 'the', 'un': 'a', 'una': 'a',
+            'y': 'and', 'o': 'or', 'pero': 'but', 'en': 'in', 'de': 'of', 'a': 'to',
+            'por': 'by', 'para': 'for', 'con': 'with', 'sin': 'without'
+        };
+        const lower = unit.originalText.toLowerCase().trim();
+        if (stopTranslations[lower]) {
+            unit.translatedText = stopTranslations[lower];
+            return unit.translatedText;
+        }
+    }
+    if (vocabState.translationsCache[unit.originalText]) {
+        unit.translatedText = vocabState.translationsCache[unit.originalText];
+        return unit.translatedText;
     }
 
     try {
-        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${vocabState.sourceLang}&tl=${vocabState.targetLang}&dt=t&q=${encodeURIComponent(unit.text)}`;
+        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${vocabState.sourceLang}&tl=${vocabState.targetLang}&dt=t&q=${encodeURIComponent(unit.originalText)}`;
         const response = await fetch(url);
         const data = await response.json();
         const translated = data[0].map(item => item[0]).join('');
-        unit.translation = translated;
-        vocabState.translationsCache[unit.text] = translated;
+        unit.translatedText = translated;
+        vocabState.translationsCache[unit.originalText] = translated;
         return translated;
     } catch (e) {
         console.error(e);
-        return '';
+        return unit.originalText;
     }
 }
 
 // ============================================================
-// HIGHLIGHTING
+// HIGHLIGHTING (always on ORIGINAL text)
 // ============================================================
 function highlightUnit(unit) {
     clearVocabHighlight();
-    if (!unit) return;
+    if (!unit || !unit.wordSpans) return;
 
-    unit.spanIndices.forEach(idx => {
-        const span = vocabState.textSpans[idx];
+    unit.wordSpans.forEach(span => {
         if (span) span.classList.add('vocab-highlight');
     });
 
-    // Scroll into view if needed
-    const firstSpan = vocabState.textSpans[unit.spanIndices[0]];
+    const firstSpan = unit.wordSpans[0];
     if (firstSpan) {
-        firstSpan.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const rect = firstSpan.getBoundingClientRect();
+        const container = document.getElementById('vocabCanvas').parentElement.parentElement;
+        const cRect = container.getBoundingClientRect();
+        if (rect.top < cRect.top || rect.bottom > cRect.bottom) {
+            firstSpan.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
     }
 }
 
 function clearVocabHighlight() {
-    vocabState.textSpans.forEach(span => span.classList.remove('vocab-highlight'));
+    vocabState.allWordSpans.forEach(span => {
+        if (span) span.classList.remove('vocab-highlight');
+    });
 }
 
 // ============================================================
@@ -276,17 +368,18 @@ async function updateVocabPanel(unit) {
         return;
     }
 
-    originalEl.textContent = unit.text;
+    originalEl.textContent = unit.originalText;
 
-    if (unit.isStopWord) {
-        translationEl.textContent = '(palabra común / stop word)';
-    } else if (unit.translation) {
-        translationEl.textContent = unit.translation;
+    if (unit.translatedText) {
+        translationEl.textContent = unit.translatedText;
+        translationEl.style.color = 'var(--primary)';
     } else {
         translationEl.textContent = 'Traduciendo...';
+        translationEl.style.color = '#94a3b8';
         const t = await translateUnit(unit);
         if (vocabState.readingUnits[vocabState.currentUnitIndex] === unit) {
-            translationEl.textContent = t || '(sin traducción)';
+            translationEl.textContent = t || unit.originalText;
+            translationEl.style.color = t ? 'var(--primary)' : '#94a3b8';
         }
     }
 
@@ -294,9 +387,9 @@ async function updateVocabPanel(unit) {
 }
 
 // ============================================================
-// PLAYBACK CONTROLS
+// PLAYBACK: narrates TRANSLATION, highlights ORIGINAL
 // ============================================================
-async function vocabPlay() {
+function vocabPlay() {
     if (vocabState.isPlaying) return;
     if (!vocabState.pdfDoc) {
         showToast('Carga un PDF primero.', 'warning');
@@ -306,66 +399,97 @@ async function vocabPlay() {
         showToast('No hay texto para leer en esta página.', 'warning');
         return;
     }
+    if (vocabState.sourceLang === vocabState.targetLang) {
+        showToast('El idioma del PDF y el idioma de narración deben ser diferentes.', 'warning');
+        return;
+    }
 
     vocabState.isPlaying = true;
     vocabState.isPaused = false;
     updatePlayButtons();
 
-    while (vocabState.isPlaying && !vocabState.isPaused) {
-        if (vocabState.currentUnitIndex >= vocabState.readingUnits.length) {
-            // Next page
-            if (vocabState.currentPage < vocabState.totalPages) {
-                vocabState.currentPage++;
-                vocabState.currentUnitIndex = 0;
-                await renderVocabPage(vocabState.currentPage);
-                continue;
-            } else {
-                showToast('Lectura completada.', 'success');
-                vocabStop();
-                return;
+    playFromCurrentUnit();
+}
+
+async function playFromCurrentUnit() {
+    if (!vocabState.isPlaying || vocabState.isPaused) return;
+
+    if (vocabState.currentUnitIndex >= vocabState.readingUnits.length) {
+        if (vocabState.currentPage < vocabState.totalPages) {
+            vocabState.currentPage++;
+            vocabState.currentUnitIndex = 0;
+            await renderVocabPage(vocabState.currentPage);
+            if (vocabState.isPlaying && !vocabState.isPaused) {
+                playFromCurrentUnit();
             }
+        } else {
+            showToast('Lectura completada.', 'success');
+            vocabStop();
         }
-
-        const unit = vocabState.readingUnits[vocabState.currentUnitIndex];
-        await vocabPlayUnit(unit);
-
-        if (vocabState.isPaused || !vocabState.isPlaying) break;
-        vocabState.currentUnitIndex++;
+        return;
     }
-}
 
-function vocabPlayUnit(unit) {
-    return new Promise((resolve) => {
-        if (!vocabState.isPlaying || vocabState.isPaused) {
-            resolve();
-            return;
+    const unit = vocabState.readingUnits[vocabState.currentUnitIndex];
+
+    // Ensure translation is ready before speaking
+    if (!unit.translatedText) {
+        await translateUnit(unit);
+    }
+
+    // Highlight the ORIGINAL text in the PDF
+    highlightUnit(unit);
+    updateVocabPanel(unit);
+
+    // Speak the TRANSLATION
+    const textToSpeak = unit.translatedText || unit.originalText;
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    utterance.lang = vocabState.targetLang;  // NARRATION language
+    utterance.rate = vocabState.rate;
+    utterance.pitch = 1;
+
+    const voice = getPreferredVoice(vocabState.targetLang);
+    if (voice) utterance.voice = voice;
+
+    // For phrase mode, use boundary events to create a "flowing" highlight effect
+    // by briefly intensifying the highlight as each word is spoken
+    if (vocabState.mode === 'phrase' && unit.wordSpans.length > 1) {
+        utterance.onboundary = (e) => {
+            if (e.name === 'word' && vocabState.isPlaying && !vocabState.isPaused) {
+                pulseHighlight(unit);
+            }
+        };
+    }
+
+    utterance.onend = () => {
+        if (vocabState.isPlaying && !vocabState.isPaused) {
+            vocabState.currentUnitIndex++;
+            playFromCurrentUnit();
         }
+    };
 
-        highlightUnit(unit);
-        updateVocabPanel(unit);
+    utterance.onerror = (e) => {
+        console.warn('TTS error:', e.error);
+        if (vocabState.isPlaying && !vocabState.isPaused) {
+            vocabState.currentUnitIndex++;
+            playFromCurrentUnit();
+        }
+    };
 
-        const utterance = new SpeechSynthesisUtterance(unit.text);
-        utterance.lang = vocabState.sourceLang;
-        utterance.rate = vocabState.rate;
-        utterance.pitch = 1;
-
-        const preferred = getPreferredVoice(vocabState.sourceLang);
-        if (preferred) utterance.voice = preferred;
-
-        utterance.onend = () => resolve();
-        utterance.onerror = () => resolve();
-
-        window.speechSynthesis.speak(utterance);
-        vocabState.utterance = utterance;
-    });
+    window.speechSynthesis.speak(utterance);
+    vocabState.utterance = utterance;
 }
 
-function getPreferredVoice(lang) {
-    const voices = window.speechSynthesis.getVoices();
-    return voices.find(v =>
-        v.lang.toLowerCase().startsWith(lang.toLowerCase()) &&
-        (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Neural'))
-    ) || voices.find(v => v.lang.toLowerCase().startsWith(lang.toLowerCase()));
+function pulseHighlight(unit) {
+    // Briefly intensify the highlight to create a pulsing effect
+    // that gives the illusion of word-by-word flow within a phrase
+    unit.wordSpans.forEach(span => {
+        if (span) {
+            span.classList.add('vocab-highlight-pulse');
+            setTimeout(() => {
+                span.classList.remove('vocab-highlight-pulse');
+            }, 300);
+        }
+    });
 }
 
 function vocabPause() {
@@ -382,7 +506,7 @@ function vocabResume() {
     if (!vocabState.isPaused) return;
     vocabState.isPaused = false;
     updatePlayButtons();
-    vocabPlay();
+    playFromCurrentUnit();
 }
 
 function vocabStop() {
@@ -463,10 +587,21 @@ function vocabChangePage(delta) {
 }
 
 function onVocabLangChange() {
+    const src = document.getElementById('vocabSourceLang').value;
+    const tgt = document.getElementById('vocabTargetLang').value;
+
+    if (src === tgt) {
+        showToast('El idioma del PDF y el idioma de narración deben ser diferentes.', 'warning');
+        const options = Array.from(document.getElementById('vocabTargetLang').options);
+        const different = options.find(o => o.value !== src);
+        if (different) {
+            document.getElementById('vocabTargetLang').value = different.value;
+        }
+    }
+
     vocabState.sourceLang = document.getElementById('vocabSourceLang').value;
     vocabState.targetLang = document.getElementById('vocabTargetLang').value;
     vocabState.translationsCache = {};
-    // Rebuild units to re-evaluate stop words
     if (vocabState.pdfDoc) {
         renderVocabPage(vocabState.currentPage);
     }
@@ -488,7 +623,6 @@ function onVocabRateChange() {
 // KEYBOARD SHORTCUTS
 // ============================================================
 document.addEventListener('keydown', (e) => {
-    // Only when vocab tab is active
     const vocabTab = document.getElementById('vocab-reader');
     if (!vocabTab || !vocabTab.classList.contains('active')) return;
 

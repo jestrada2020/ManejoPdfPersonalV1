@@ -656,7 +656,7 @@
 
                         <div class="row" style="margin-bottom: 10px;">
                             <div class="col">
-                                <label>Idioma origen</label>
+                                <label>📄 Idioma del PDF</label>
                                 <select id="vocabSourceLang" class="form-control" onchange="onVocabLangChange()">
                                     <option value="en" selected>Inglés</option>
                                     <option value="es">Español</option>
@@ -667,7 +667,7 @@
                                 </select>
                             </div>
                             <div class="col">
-                                <label>Idioma destino</label>
+                                <label>🔊 Idioma de narración</label>
                                 <select id="vocabTargetLang" class="form-control" onchange="onVocabLangChange()">
                                     <option value="es" selected>Español</option>
                                     <option value="en">Inglés</option>
@@ -703,11 +703,11 @@
                         <hr>
 
                         <div style="padding: 12px; background: var(--bg-body); border-radius: var(--radius); border: 1px solid var(--border);">
-                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px;">PALABRA / FRASE</div>
-                            <div id="vocabOriginal" style="font-size: 1.1rem; font-weight: 600; color: var(--text-main); margin-bottom: 8px; min-height: 28px;">—</div>
-                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px;">TRADUCCIÓN</div>
-                            <div id="vocabTranslation" style="font-size: 1rem; color: var(--primary); min-height: 24px;">—</div>
-                            <div id="vocabProgress" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 8px; text-align: right;">0 / 0</div>
+                            <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em;">📄 Texto original (PDF)</div>
+                            <div id="vocabOriginal" style="font-size: 1.1rem; font-weight: 600; color: var(--text-main); margin-bottom: 10px; min-height: 28px;">—</div>
+                            <div style="font-size: 0.7rem; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em;">🔊 Traducción narrada</div>
+                            <div id="vocabTranslation" style="font-size: 1rem; color: var(--primary); min-height: 24px; font-style: italic;">—</div>
+                            <div id="vocabProgress" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 10px; text-align: right;">0 / 0</div>
                         </div>
 
                         <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 10px;">

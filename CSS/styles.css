@@ -150,24 +150,55 @@ body.dark #ttsFallbackMessage {
    Vocabulary Reader Highlighting
    ============================================================ */
 #vocabTextLayer {
-    opacity: 0.35;
+    opacity: 0.6;
+    line-height: 1.0;
 }
 
+#vocabTextLayer > span,
+#vocabTextLayer .vocab-word {
+    color: transparent;
+    position: absolute;
+    white-space: pre;
+    cursor: text;
+    transform-origin: 0% 0%;
+}
+
+.vocab-word {
+    transition: background-color 0.05s linear, box-shadow 0.05s linear;
+}
+
+/* Base highlight: bright yellow glow over the original text */
 .vocab-highlight {
-    background: rgba(250, 204, 21, 0.85) !important;
+    background-color: rgba(250, 204, 21, 0.92) !important;
     border-radius: 4px;
-    box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.6);
-    transition: background 0.1s ease;
+    box-shadow: 0 0 0 3px rgba(202, 138, 4, 0.8), 0 0 12px rgba(250, 204, 21, 0.6);
     color: transparent !important;
 }
 
+/* Pulse effect when a phrase is being spoken word-by-word */
+@keyframes vocabPulse {
+    0% { box-shadow: 0 0 0 3px rgba(202, 138, 4, 0.8), 0 0 12px rgba(250, 204, 21, 0.6); }
+    50% { box-shadow: 0 0 0 5px rgba(234, 179, 8, 1), 0 0 20px rgba(250, 204, 21, 0.9); }
+    100% { box-shadow: 0 0 0 3px rgba(202, 138, 4, 0.8), 0 0 12px rgba(250, 204, 21, 0.6); }
+}
+
+.vocab-highlight-pulse {
+    animation: vocabPulse 0.3s ease-in-out;
+}
+
 body.dark #vocabTextLayer {
-    opacity: 0.45;
+    opacity: 0.7;
 }
 
 body.dark .vocab-highlight {
-    background: rgba(234, 179, 8, 0.8) !important;
-    box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.7);
+    background-color: rgba(234, 179, 8, 0.92) !important;
+    box-shadow: 0 0 0 3px rgba(202, 138, 4, 0.9), 0 0 14px rgba(234, 179, 8, 0.7);
+}
+
+body.dark @keyframes vocabPulse {
+    0% { box-shadow: 0 0 0 3px rgba(202, 138, 4, 0.9), 0 0 14px rgba(234, 179, 8, 0.7); }
+    50% { box-shadow: 0 0 0 5px rgba(250, 204, 21, 1), 0 0 24px rgba(250, 204, 21, 1); }
+    100% { box-shadow: 0 0 0 3px rgba(202, 138, 4, 0.9), 0 0 14px rgba(234, 179, 8, 0.7); }
 }
 
 body.dark .floating-controls {
