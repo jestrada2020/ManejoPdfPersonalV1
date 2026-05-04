@@ -155,6 +155,7 @@ function splitTextLayerIntoWords(textLayerDiv) {
         const text = span.textContent;
         if (!text || text.trim().length === 0) {
             span.dataset.vocabGroup = groupId;
+            span.dataset.spanIndex  = vocabState.allWordSpans.length;
             vocabState.allWordSpans.push(span);
             groupId++;
             return;
@@ -164,6 +165,7 @@ function splitTextLayerIntoWords(textLayerDiv) {
         if (tokens.length <= 1) {
             span.classList.add('vocab-word');
             span.dataset.vocabGroup = groupId;
+            span.dataset.spanIndex  = vocabState.allWordSpans.length;
             vocabState.allWordSpans.push(span);
             groupId++;
             return;
@@ -175,16 +177,50 @@ function splitTextLayerIntoWords(textLayerDiv) {
         tokens.forEach(token => {
             const subSpan = document.createElement('span');
             subSpan.textContent = token;
-            subSpan.className = span.className;
+            subSpan.className   = span.className;
             subSpan.classList.add('vocab-word');
-            subSpan.style.cssText = span.style.cssText;
+            subSpan.style.cssText    = span.style.cssText;
             subSpan.dataset.vocabGroup = groupId;
+            subSpan.dataset.spanIndex  = vocabState.allWordSpans.length;
             fragment.appendChild(subSpan);
             vocabState.allWordSpans.push(subSpan);
         });
 
         parent.replaceChild(fragment, span);
         groupId++;
+    });
+}
+
+// Mirror split for the modal text layer — produces vocabModal.allSpans in the
+// exact same order as vocabState.allWordSpans so indices match 1-to-1.
+function splitTextLayerForModal(textLayerDiv) {
+    vocabModal.allSpans = [];
+    const originalSpans = Array.from(textLayerDiv.querySelectorAll('span'));
+
+    originalSpans.forEach(span => {
+        const text = span.textContent;
+        if (!text || text.trim().length === 0) {
+            vocabModal.allSpans.push(span);
+            return;
+        }
+
+        const tokens = text.split(/(\s+)/).filter(t => t.length > 0);
+        if (tokens.length <= 1) {
+            vocabModal.allSpans.push(span);
+            return;
+        }
+
+        const parent = span.parentNode;
+        const fragment = document.createDocumentFragment();
+        tokens.forEach(token => {
+            const subSpan = document.createElement('span');
+            subSpan.textContent   = token;
+            subSpan.className     = span.className;
+            subSpan.style.cssText = span.style.cssText;
+            fragment.appendChild(subSpan);
+            vocabModal.allSpans.push(subSpan);
+        });
+        parent.replaceChild(fragment, span);
     });
 }
 
@@ -197,33 +233,38 @@ function buildReadingUnits() {
     const mode = vocabState.mode;
 
     if (mode === 'phrase') {
+        // Group consecutive word-spans into natural sentences/phrases.
+        // Spans come from different PDF.js text elements so each has its own
+        // absolute position — this gives `highlightUnit` enough distinct rects
+        // to draw elongated overlays across the full width of each line.
+        const PHRASE_END = /[.!?;][\s"'»)\]]*$/;
+        const MAX_SPANS  = 25;            // hard cap to avoid very long phrases
         let current = { originalText: '', wordSpans: [] };
-        let lastGroup = null;
 
         spans.forEach(span => {
             const text = span.textContent || '';
-            const group = span.dataset.vocabGroup;
+            if (!text.trim()) return;
 
-            if (lastGroup !== null && group !== lastGroup && current.originalText.trim()) {
+            if (current.wordSpans.length > 0) current.originalText += ' ';
+            current.originalText += text.trim();
+            current.wordSpans.push(span);
+
+            if (PHRASE_END.test(current.originalText) || current.wordSpans.length >= MAX_SPANS) {
                 units.push({
                     originalText: current.originalText.trim(),
                     translatedText: '',
-                    wordSpans: current.wordSpans,
+                    wordSpans: [...current.wordSpans],
                     isStopWord: false
                 });
                 current = { originalText: '', wordSpans: [] };
             }
-
-            current.originalText += text;
-            current.wordSpans.push(span);
-            lastGroup = group;
         });
 
-        if (current.originalText.trim()) {
+        if (current.originalText.trim() && current.wordSpans.length > 0) {
             units.push({
                 originalText: current.originalText.trim(),
                 translatedText: '',
-                wordSpans: current.wordSpans,
+                wordSpans: [...current.wordSpans],
                 isStopWord: false
             });
         }
@@ -328,29 +369,115 @@ async function translateUnit(unit) {
 // ============================================================
 // HIGHLIGHTING (always on ORIGINAL text)
 // ============================================================
+
+function clearVocabHighlight() {
+    document.querySelectorAll('.vocab-highlight-overlay').forEach(el => el.remove());
+}
+
+// Groups rects by visual line and draws one elongated overlay per line
+// inside `targetEl` (must have position:relative).
+// All rects must already be in targetEl's coordinate space.
+function drawHighlightOverlays(spanRects, targetEl) {
+    const LINE_TOLERANCE = 10;
+    const lines = [];
+
+    spanRects.forEach(r => {
+        const midY = (r.top + r.bottom) / 2;
+        const existing = lines.find(l => Math.abs(l.midY - midY) < LINE_TOLERANCE);
+        if (existing) {
+            existing.rects.push(r);
+        } else {
+            lines.push({ midY, rects: [r] });
+        }
+    });
+
+    lines.forEach(line => {
+        const left   = Math.min(...line.rects.map(r => r.left));
+        const top    = Math.min(...line.rects.map(r => r.top));
+        const right  = Math.max(...line.rects.map(r => r.right));
+        const bottom = Math.max(...line.rects.map(r => r.bottom));
+        if (right <= left || bottom <= top) return;
+
+        const el = document.createElement('div');
+        el.className     = 'vocab-highlight-overlay';
+        el.style.left    = left            + 'px';
+        el.style.top     = top             + 'px';
+        el.style.width   = (right - left)  + 'px';
+        el.style.height  = (bottom - top)  + 'px';
+        targetEl.appendChild(el);
+    });
+}
+
+// Convert a NodeList of spans to rects relative to a reference element
+function spansToRects(spans, referenceEl) {
+    const refRect = referenceEl.getBoundingClientRect();
+    return spans
+        .map(s => {
+            const r = s.getBoundingClientRect();
+            return { left:   r.left   - refRect.left,
+                     top:    r.top    - refRect.top,
+                     right:  r.right  - refRect.left,
+                     bottom: r.bottom - refRect.top };
+        })
+        .filter(r => (r.right - r.left) > 0 || (r.bottom - r.top) > 0);
+}
+
 function highlightUnit(unit) {
     clearVocabHighlight();
     if (!unit || !unit.wordSpans) return;
 
-    unit.wordSpans.forEach(span => {
-        if (span) span.classList.add('vocab-highlight');
-    });
+    const modalEl   = document.getElementById('vocabPdfModal');
+    const modalOpen = modalEl && modalEl.style.display !== 'none';
 
-    const firstSpan = unit.wordSpans[0];
-    if (firstSpan) {
-        const rect = firstSpan.getBoundingClientRect();
-        const container = document.getElementById('vocabCanvas').parentElement.parentElement;
-        const cRect = container.getBoundingClientRect();
-        if (rect.top < cRect.top || rect.bottom > cRect.bottom) {
-            firstSpan.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (modalOpen) {
+        // --- Modal highlighting: use the modal's own text-layer spans ---
+        const canvasWrap = document.getElementById('vocabModalCanvasWrap');
+        if (!canvasWrap) return;
+
+        // Map main-layer span indices to modal-layer spans
+        const modalSpans = unit.wordSpans
+            .map(s => {
+                const idx = parseInt(s.dataset.spanIndex, 10);
+                return (!isNaN(idx) && vocabModal.allSpans) ? vocabModal.allSpans[idx] : null;
+            })
+            .filter(Boolean);
+
+        if (modalSpans.length === 0) return;
+
+        const spanRects = spansToRects(modalSpans, canvasWrap);
+        if (spanRects.length === 0) return;
+
+        drawHighlightOverlays(spanRects, canvasWrap);
+
+        // Auto-scroll modal so the highlighted line is visible
+        const scrollEl  = document.getElementById('vocabModalScroll');
+        const scrollRect = scrollEl.getBoundingClientRect();
+        const firstSpanRect = modalSpans[0].getBoundingClientRect();
+        if (firstSpanRect.top < scrollRect.top + 60 ||
+            firstSpanRect.bottom > scrollRect.bottom - 60) {
+            const targetScroll = scrollEl.scrollTop +
+                (firstSpanRect.top - scrollRect.top) - scrollEl.clientHeight / 3;
+            scrollEl.scrollTo({ top: Math.max(0, targetScroll), behavior: 'smooth' });
+        }
+
+    } else {
+        // --- Main-view highlighting ---
+        const mainWrapper = document.getElementById('vocabWrapper');
+        const spanRects   = spansToRects(unit.wordSpans, mainWrapper);
+        if (spanRects.length === 0) return;
+
+        drawHighlightOverlays(spanRects, mainWrapper);
+
+        const firstSpan = unit.wordSpans[0];
+        if (firstSpan) {
+            const rect = firstSpan.getBoundingClientRect();
+            const container = document.getElementById('vocabCanvas').parentElement.parentElement;
+            const cRect = container.getBoundingClientRect();
+            if (rect.top < cRect.top || rect.bottom > cRect.bottom) {
+                firstSpan.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
         }
     }
-}
-
-function clearVocabHighlight() {
-    vocabState.allWordSpans.forEach(span => {
-        if (span) span.classList.remove('vocab-highlight');
-    });
 }
 
 // ============================================================
@@ -408,6 +535,7 @@ function vocabPlay() {
     vocabState.isPaused = false;
     updatePlayButtons();
 
+    openVocabModal();       // abre pantalla completa al iniciar lectura
     playFromCurrentUnit();
 }
 
@@ -419,6 +547,12 @@ async function playFromCurrentUnit() {
             vocabState.currentPage++;
             vocabState.currentUnitIndex = 0;
             await renderVocabPage(vocabState.currentPage);
+            // Sync modal page if open
+            const modalEl = document.getElementById('vocabPdfModal');
+            if (modalEl && modalEl.style.display !== 'none') {
+                vocabModal.currentPage = vocabState.currentPage;
+                await renderVocabModal(vocabState.currentPage);
+            }
             if (vocabState.isPlaying && !vocabState.isPaused) {
                 playFromCurrentUnit();
             }
@@ -480,15 +614,9 @@ async function playFromCurrentUnit() {
 }
 
 function pulseHighlight(unit) {
-    // Briefly intensify the highlight to create a pulsing effect
-    // that gives the illusion of word-by-word flow within a phrase
-    unit.wordSpans.forEach(span => {
-        if (span) {
-            span.classList.add('vocab-highlight-pulse');
-            setTimeout(() => {
-                span.classList.remove('vocab-highlight-pulse');
-            }, 300);
-        }
+    document.querySelectorAll('.vocab-highlight-overlay').forEach(overlay => {
+        overlay.classList.add('vocab-highlight-pulse');
+        setTimeout(() => overlay.classList.remove('vocab-highlight-pulse'), 300);
     });
 }
 
@@ -623,6 +751,11 @@ function onVocabRateChange() {
 // KEYBOARD SHORTCUTS
 // ============================================================
 document.addEventListener('keydown', (e) => {
+    if (e.code === 'Escape') {
+        closeVocabModal();
+        return;
+    }
+
     const vocabTab = document.getElementById('vocab-reader');
     if (!vocabTab || !vocabTab.classList.contains('active')) return;
 
@@ -637,3 +770,99 @@ document.addEventListener('keydown', (e) => {
         vocabPrev();
     }
 });
+
+// ============================================================
+// PDF MODAL VIEWER
+// ============================================================
+const vocabModal = {
+    currentPage: 1,
+    scale: 1.5,
+    autoFit: true,
+    allSpans: []       // mirrors vocabState.allWordSpans, same indices
+};
+
+function openVocabModal() {
+    if (!vocabState.pdfDoc) {
+        showToast('Carga un PDF primero.', 'warning');
+        return Promise.resolve();
+    }
+    vocabModal.currentPage = vocabState.currentPage;
+    vocabModal.autoFit = true;
+    document.getElementById('vocabPdfModal').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    return renderVocabModal(vocabModal.currentPage);
+}
+
+function closeVocabModal() {
+    const modal = document.getElementById('vocabPdfModal');
+    if (!modal || modal.style.display === 'none') return;
+    modal.style.display = 'none';
+    document.body.style.overflow = '';
+    clearVocabHighlight();
+}
+
+async function renderVocabModal(pageNum) {
+    if (!vocabState.pdfDoc) return;
+    clearVocabHighlight();
+
+    const page      = await vocabState.pdfDoc.getPage(pageNum);
+    const scrollEl  = document.getElementById('vocabModalScroll');
+    const canvas    = document.getElementById('vocabModalCanvas');
+    const textLayer = document.getElementById('vocabModalTextLayer');
+    const unscaled  = page.getViewport({ scale: 1.0 });
+
+    if (vocabModal.autoFit) {
+        const availW = (scrollEl.clientWidth  || window.innerWidth)  - 40;
+        const availH = (scrollEl.clientHeight || (window.innerHeight - 60)) - 40;
+        vocabModal.scale = Math.min(availW / unscaled.width, availH / unscaled.height, 3.0);
+    }
+
+    const viewport = page.getViewport({ scale: vocabModal.scale });
+
+    // Render canvas
+    canvas.width  = viewport.width;
+    canvas.height = viewport.height;
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+
+    // Render text layer at the same scale so spans have correct positions for highlighting
+    textLayer.innerHTML = '';
+    textLayer.style.width  = viewport.width  + 'px';
+    textLayer.style.height = viewport.height + 'px';
+    const textContent = await page.getTextContent();
+    await pdfjsLib.renderTextLayer({
+        textContent, container: textLayer, viewport, textDivs: []
+    }).promise;
+
+    // Build parallel span array (same order as main allWordSpans)
+    splitTextLayerForModal(textLayer);
+
+    vocabModal.currentPage = pageNum;
+    document.getElementById('vocabModalPageLabel').textContent =
+        `${pageNum} / ${vocabState.totalPages}`;
+    document.getElementById('vocabModalZoomLabel').textContent =
+        Math.round(vocabModal.scale * 100) + '%';
+
+    // Redraw highlight if reading is in progress
+    if (vocabState.isPlaying || vocabState.isPaused) {
+        const unit = vocabState.readingUnits[vocabState.currentUnitIndex];
+        if (unit) highlightUnit(unit);
+    }
+}
+
+function vocabModalChangePage(delta) {
+    const next = vocabModal.currentPage + delta;
+    if (next >= 1 && next <= vocabState.totalPages) {
+        renderVocabModal(next);
+    }
+}
+
+function vocabModalChangeZoom(delta) {
+    vocabModal.autoFit = false;
+    vocabModal.scale = Math.max(0.4, Math.min(4.0, vocabModal.scale + delta));
+    renderVocabModal(vocabModal.currentPage);
+}
+
+function vocabModalFit() {
+    vocabModal.autoFit = true;
+    renderVocabModal(vocabModal.currentPage);
+}

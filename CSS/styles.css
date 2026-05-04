@@ -155,7 +155,9 @@ body.dark #ttsFallbackMessage {
 }
 
 #vocabTextLayer > span,
-#vocabTextLayer .vocab-word {
+#vocabTextLayer .vocab-word,
+#vocabModalTextLayer > span,
+#vocabModalTextLayer span {
     color: transparent;
     position: absolute;
     white-space: pre;
@@ -163,26 +165,25 @@ body.dark #ttsFallbackMessage {
     transform-origin: 0% 0%;
 }
 
-.vocab-word {
-    transition: background-color 0.05s linear, box-shadow 0.05s linear;
+/* Overlay approach: one div per line drawn on #vocabWrapper (position:relative) */
+.vocab-highlight-overlay {
+    position: absolute;
+    pointer-events: none;
+    z-index: 5;
+    border-radius: 3px;
+    background-color: rgba(250, 204, 21, 0.45);
+    box-shadow: 0 0 0 2px rgba(202, 138, 4, 0.75), 0 0 10px rgba(250, 204, 21, 0.55);
+    transition: box-shadow 0.05s linear;
 }
 
-/* Base highlight: bright yellow glow over the original text */
-.vocab-highlight {
-    background-color: rgba(250, 204, 21, 0.92) !important;
-    border-radius: 4px;
-    box-shadow: 0 0 0 3px rgba(202, 138, 4, 0.8), 0 0 12px rgba(250, 204, 21, 0.6);
-    color: transparent !important;
-}
-
-/* Pulse effect when a phrase is being spoken word-by-word */
+/* Pulse effect */
 @keyframes vocabPulse {
-    0% { box-shadow: 0 0 0 3px rgba(202, 138, 4, 0.8), 0 0 12px rgba(250, 204, 21, 0.6); }
-    50% { box-shadow: 0 0 0 5px rgba(234, 179, 8, 1), 0 0 20px rgba(250, 204, 21, 0.9); }
-    100% { box-shadow: 0 0 0 3px rgba(202, 138, 4, 0.8), 0 0 12px rgba(250, 204, 21, 0.6); }
+    0%   { box-shadow: 0 0 0 2px rgba(202, 138, 4, 0.75), 0 0 10px rgba(250, 204, 21, 0.55); }
+    50%  { box-shadow: 0 0 0 4px rgba(234, 179, 8, 1),    0 0 20px rgba(250, 204, 21, 0.90); }
+    100% { box-shadow: 0 0 0 2px rgba(202, 138, 4, 0.75), 0 0 10px rgba(250, 204, 21, 0.55); }
 }
 
-.vocab-highlight-pulse {
+.vocab-highlight-overlay.vocab-highlight-pulse {
     animation: vocabPulse 0.3s ease-in-out;
 }
 
@@ -190,20 +191,118 @@ body.dark #vocabTextLayer {
     opacity: 0.7;
 }
 
-body.dark .vocab-highlight {
-    background-color: rgba(234, 179, 8, 0.92) !important;
-    box-shadow: 0 0 0 3px rgba(202, 138, 4, 0.9), 0 0 14px rgba(234, 179, 8, 0.7);
+body.dark .vocab-highlight-overlay {
+    background-color: rgba(234, 179, 8, 0.40);
+    box-shadow: 0 0 0 2px rgba(202, 138, 4, 0.85), 0 0 12px rgba(234, 179, 8, 0.65);
 }
 
 body.dark @keyframes vocabPulse {
-    0% { box-shadow: 0 0 0 3px rgba(202, 138, 4, 0.9), 0 0 14px rgba(234, 179, 8, 0.7); }
-    50% { box-shadow: 0 0 0 5px rgba(250, 204, 21, 1), 0 0 24px rgba(250, 204, 21, 1); }
-    100% { box-shadow: 0 0 0 3px rgba(202, 138, 4, 0.9), 0 0 14px rgba(234, 179, 8, 0.7); }
+    0%   { box-shadow: 0 0 0 2px rgba(202, 138, 4, 0.85), 0 0 12px rgba(234, 179, 8, 0.65); }
+    50%  { box-shadow: 0 0 0 4px rgba(250, 204, 21, 1),   0 0 24px rgba(250, 204, 21, 1); }
+    100% { box-shadow: 0 0 0 2px rgba(202, 138, 4, 0.85), 0 0 12px rgba(234, 179, 8, 0.65); }
 }
 
 body.dark .floating-controls {
     background: #1e293b;
     color: var(--text-main);
+}
+
+/* ============================================================
+   Vocab PDF Modal Viewer — pantalla completa
+   ============================================================ */
+.vocab-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    display: flex;
+}
+
+.vocab-modal-box {
+    background: var(--bg-card);
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+}
+
+.vocab-modal-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    flex-shrink: 0;
+    background: var(--bg-card);
+    min-height: 48px;
+}
+
+.vocab-modal-title {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--text-main);
+    margin-right: 6px;
+}
+
+.vocab-modal-nav,
+.vocab-modal-zoom {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.vocab-modal-info {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    min-width: 60px;
+    text-align: center;
+}
+
+.vocab-modal-btn {
+    padding: 4px 10px;
+    font-size: 0.85rem;
+}
+
+.vocab-modal-close {
+    margin-left: auto;
+    background: var(--danger);
+    color: white;
+    padding: 5px 14px;
+    border-radius: var(--radius);
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+}
+
+.vocab-modal-close:hover {
+    opacity: 0.85;
+}
+
+.vocab-modal-scroll {
+    overflow: auto;
+    flex: 1;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    background: #444;
+}
+
+.vocab-modal-scroll canvas {
+    display: block;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+}
+
+body.dark .vocab-modal-box {
+    background: #1e293b;
+}
+
+body.dark .vocab-modal-toolbar {
+    background: #1e293b;
+}
+
+body.dark .vocab-modal-scroll {
+    background: #0f172a;
 }
 
 body {

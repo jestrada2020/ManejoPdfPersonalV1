@@ -631,10 +631,16 @@
                     <div class="sidebar-controls">
                         <h3>📖 Lector Bilingüe</h3>
 
-                        <button class="btn" style="width:100%; margin-bottom:10px;"
-                            onclick="document.getElementById('vocabFileInput').click()">
-                            📂 Cargar PDF
-                        </button>
+                        <div style="display:flex; gap:6px; margin-bottom:10px;">
+                            <button class="btn" style="flex:1;"
+                                onclick="document.getElementById('vocabFileInput').click()">
+                                📂 Cargar PDF
+                            </button>
+                            <button class="btn" style="flex:0 0 auto; background:var(--primary); color:white;"
+                                onclick="openVocabModal()" title="Abrir visor ampliado">
+                                🔍 Visor
+                            </button>
+                        </div>
                         <input type="file" id="vocabFileInput" accept="application/pdf" style="display: none;"
                             onchange="handleVocabFile(this)">
 
@@ -1055,6 +1061,41 @@
 
     <!-- Dark Mode Toggle -->
     <button id="darkModeToggle" class="dark-mode-toggle" title="Cambiar tema">🌙</button>
+
+    <!-- ============================================================
+         Vocab PDF Modal Viewer
+         ============================================================ -->
+    <div id="vocabPdfModal" class="vocab-modal-backdrop" style="display:none;">
+        <div class="vocab-modal-box">
+            <!-- Toolbar -->
+            <div class="vocab-modal-toolbar">
+                <span class="vocab-modal-title">🔍 Visor PDF</span>
+
+                <div class="vocab-modal-nav">
+                    <button class="btn vocab-modal-btn" onclick="vocabModalChangePage(-1)" title="Página anterior">⏮️</button>
+                    <span id="vocabModalPageLabel" class="vocab-modal-info">1 / 1</span>
+                    <button class="btn vocab-modal-btn" onclick="vocabModalChangePage(1)"  title="Página siguiente">⏭️</button>
+                </div>
+
+                <div class="vocab-modal-zoom">
+                    <button class="btn vocab-modal-btn" onclick="vocabModalChangeZoom(-0.25)" title="Reducir">−</button>
+                    <span id="vocabModalZoomLabel" class="vocab-modal-info">100%</span>
+                    <button class="btn vocab-modal-btn" onclick="vocabModalChangeZoom(0.25)"  title="Ampliar">+</button>
+                    <button class="btn vocab-modal-btn" onclick="vocabModalFit()" title="Ajustar a ventana">⊡ Ajustar</button>
+                </div>
+
+                <button class="btn vocab-modal-close" onclick="closeVocabModal()" title="Cerrar (Esc)">✕ Cerrar</button>
+            </div>
+
+            <!-- Canvas scroll area -->
+            <div id="vocabModalScroll" class="vocab-modal-scroll">
+                <div id="vocabModalCanvasWrap" style="position:relative; display:inline-block; line-height:0; align-self:flex-start;">
+                    <canvas id="vocabModalCanvas"></canvas>
+                    <div id="vocabModalTextLayer" class="textLayer" style="position:absolute;top:0;left:0;pointer-events:none;opacity:0;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>
