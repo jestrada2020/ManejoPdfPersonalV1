@@ -330,45 +330,47 @@ function createTranslatorEngine(config) {
         }
     }
 
-    async function playAudio() {
-        const audio = document.getElementById(ids.audio);
+    function playAudio() {
         const status = document.getElementById(ids.status);
         const text = state.currentTranslation;
-        if (!text) return;
+        if (!text) {
+            showToast('No hay traducción para reproducir.', 'warning');
+            return;
+        }
 
-        try {
-            if (state.currentAudioText !== text) {
-                status.textContent = 'Generando audio...';
-                const chunks = chunkText(text, 180);
-                const audioBlobs = [];
-                for (let i = 0; i < chunks.length; i++) {
-                    const chunk = chunks[i];
-                    const googleUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(chunk)}&tl=${config.targetLang}&client=tw-ob`;
-                    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(googleUrl)}`;
-                    const response = await fetch(proxyUrl);
-                    const blob = await response.blob();
-                    audioBlobs.push(blob);
-                    status.textContent = `Generando audio ${i + 1}/${chunks.length}...`;
-                }
-                const finalBlob = new Blob(audioBlobs, { type: 'audio/mpeg' });
-                state.currentAudioUrl = URL.createObjectURL(finalBlob);
-                state.currentAudioText = text;
-                audio.src = state.currentAudioUrl;
-            }
-            audio.style.display = 'block';
-            await audio.play();
+        stopAudio();
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = config.targetLang === 'es' ? 'es-MX' : 'en-US';
+        utterance.rate = 0.95;
+
+        // Try to find a good voice
+        const voices = window.speechSynthesis.getVoices();
+        const preferred = voices.find(v =>
+            v.lang.includes(config.targetLang) &&
+            (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Neural'))
+        ) || voices.find(v => v.lang.includes(config.targetLang));
+        if (preferred) utterance.voice = preferred;
+
+        utterance.onstart = () => {
             status.textContent = 'Reproduciendo...';
-        } catch (e) {
+        };
+        utterance.onend = () => {
+            status.textContent = 'Reproducción finalizada.';
+        };
+        utterance.onerror = (e) => {
             console.error(e);
             status.textContent = 'Error en audio.';
-            showToast('Error generando audio TTS', 'error');
-        }
+            showToast('Error al reproducir audio', 'error');
+        };
+
+        window.speechSynthesis.speak(utterance);
     }
 
     function stopAudio() {
-        const audio = document.getElementById(ids.audio);
-        audio.pause();
-        audio.currentTime = 0;
+        if (window.speechSynthesis.speaking) {
+            window.speechSynthesis.cancel();
+        }
     }
 
     async function runOcrCurrentPage() {

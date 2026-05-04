@@ -746,8 +746,20 @@
                             <audio id="ttsAudioPreview" controls style="width: 100%;"></audio>
                         </div>
 
+                        <div id="ttsFallbackMessage" style="margin-top: 10px; padding: 8px; background: #fffbeb; border: 1px solid #fcd34d; border-radius: 4px; font-size: 0.8rem; color: #92400e; display: none;">
+                            ⚠️ El servidor TTS externo no está disponible. Se usó la voz del navegador.
+                            Para adjuntar audio al PDF, sube un archivo MP3 manualmente debajo.
+                        </div>
+
                         <hr>
-                        <label><b>2. Insertar</b></label>
+                        <label><b>2. Subir audio (opcional)</b></label>
+                        <input type="file" id="ttsUploadAudioInput" accept="audio/*" onchange="handleTTSUploadAudio(this)">
+                        <p style="font-size:0.75rem; color:#666; margin-top:4px;">
+                            Si el generador falla, puedes subir tu propio MP3.
+                        </p>
+
+                        <hr>
+                        <label><b>3. Insertar</b></label>
                         <p style="font-size:0.8rem; color:#666;">Haz clic en "Colocar" y luego selecciona el lugar en el
                             PDF.</p>
                         <button id="btnPlaceTTSPodcast" class="btn" disabled onclick="activateTTSPodcastPlacement()">

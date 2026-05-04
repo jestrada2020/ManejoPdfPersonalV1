@@ -10,6 +10,12 @@ let ttsState = {
     marker: null
 };
 
+// Lista de proxies CORS alternativos (se intentan en orden)
+const TTS_PROXIES = [
+    url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+];
+
 async function handleTTSPodcastFileBase(input) {
     if (!input.files.length) return;
     ttsState.file = input.files[0];
@@ -68,10 +74,46 @@ function handleTTSPodcastCanvasClick(e) {
 
     ttsState.placementMode = false;
     e.target.style.cursor = 'default';
-    alert("Ubicación seleccionada. Ahora puedes guardar.");
+    showToast('Ubicación seleccionada. Ahora puedes guardar.', 'success');
     document.getElementById('btnSaveTTSPodcast').disabled = false;
 
     renderTTSPodcastPage(ttsState.currentPage);
+}
+
+function chunkText(str, maxLength) {
+    const words = str.split(' ');
+    const chunks = [];
+    let currentChunk = '';
+
+    words.forEach(word => {
+        if ((currentChunk + word).length < maxLength) {
+            currentChunk += (currentChunk ? ' ' : '') + word;
+        } else {
+            chunks.push(currentChunk);
+            currentChunk = word;
+        }
+    });
+    if (currentChunk) chunks.push(currentChunk);
+    return chunks;
+}
+
+async function tryFetchWithProxies(url) {
+    const errors = [];
+    for (const proxyFn of TTS_PROXIES) {
+        const proxyUrl = proxyFn(url);
+        try {
+            const response = await fetch(proxyUrl, { method: 'GET' });
+            if (response.ok) {
+                const blob = await response.blob();
+                if (blob.size > 1000) {
+                    return blob;
+                }
+            }
+        } catch (e) {
+            errors.push(e.message);
+        }
+    }
+    throw new Error('Todos los proxies fallaron: ' + errors.join('; '));
 }
 
 async function generateTTSAudio() {
@@ -83,62 +125,75 @@ async function generateTTSAudio() {
         return;
     }
 
-    function chunkText(str, maxLength) {
-        const words = str.split(' ');
-        const chunks = [];
-        let currentChunk = '';
-
-        words.forEach(word => {
-            if ((currentChunk + word).length < maxLength) {
-                currentChunk += (currentChunk ? ' ' : '') + word;
-            } else {
-                chunks.push(currentChunk);
-                currentChunk = word;
-            }
-        });
-        if (currentChunk) chunks.push(currentChunk);
-        return chunks;
-    }
-
-    const chunks = chunkText(text, 180);
-    const audioBlobs = [];
     const btn = document.querySelector('[onclick="generateTTSAudio()"]');
     const originalText = btn.textContent;
-
     btn.disabled = true;
 
+    // Primero intentar proxies de Google TTS
     try {
+        const chunks = chunkText(text, 180);
+        const audioBlobs = [];
+
         for (let i = 0; i < chunks.length; i++) {
             btn.textContent = `Generando ${i + 1}/${chunks.length}...`;
             const chunk = chunks[i];
             const googleUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(chunk)}&tl=${lang}&client=tw-ob`;
-            const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(googleUrl)}`;
-
-            const response = await fetch(url);
-            if (!response.ok) throw new Error(`Error en el segmento ${i + 1}`);
-            const blob = await response.blob();
+            const blob = await tryFetchWithProxies(googleUrl);
             audioBlobs.push(blob);
         }
 
         const finalBlob = new Blob(audioBlobs, { type: 'audio/mpeg' });
-
         ttsState.audioBlob = finalBlob;
         ttsState.audioUrl = URL.createObjectURL(finalBlob);
 
         const audio = document.getElementById('ttsAudioPreview');
         audio.src = ttsState.audioUrl;
         document.getElementById('ttsAudioPreviewContainer').style.display = 'block';
-
         document.getElementById('btnPlaceTTSPodcast').disabled = false;
-        alert("Audio generado correctamente. Escúchalo y luego colócalo en el PDF.");
 
-    } catch (e) {
-        console.error(e);
-        showToast('Error generando audio: ' + e.message, 'error');
+        showToast('Audio generado correctamente. Escúchalo y luego colócalo en el PDF.', 'success');
+    } catch (proxyError) {
+        console.warn('Proxies TTS fallaron, usando fallback de speechSynthesis:', proxyError);
+
+        // Fallback: usar speechSynthesis nativo para pre-escucha
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = lang === 'es' ? 'es-MX' : lang === 'en' ? 'en-US' : lang;
+        utterance.rate = 0.95;
+
+        const voices = window.speechSynthesis.getVoices();
+        const preferred = voices.find(v => v.lang.includes(lang) && (v.name.includes('Google') || v.name.includes('Natural'))) || voices.find(v => v.lang.includes(lang));
+        if (preferred) utterance.voice = preferred;
+
+        // Como no tenemos blob, no podemos adjuntar directamente
+        // Pero permitimos pre-escucha y sugerimos alternativas
+        window.speechSynthesis.speak(utterance);
+
+        showToast('Servidor TTS externo no disponible. Usando voz del navegador. Sube un MP3 para adjuntarlo al PDF.', 'warning', 6000);
+
+        // Ocultar el preview de audio nativo ya que no hay blob
+        document.getElementById('ttsAudioPreviewContainer').style.display = 'none';
+        document.getElementById('ttsFallbackMessage').style.display = 'block';
+
+        // No habilitamos el botón de colocar porque no hay blob
+        // El usuario puede subir un archivo de audio manualmente
     } finally {
         btn.disabled = false;
         btn.textContent = originalText;
     }
+}
+
+function handleTTSUploadAudio(input) {
+    if (!input.files.length) return;
+    const file = input.files[0];
+    ttsState.audioBlob = file;
+    ttsState.audioUrl = URL.createObjectURL(file);
+
+    const audio = document.getElementById('ttsAudioPreview');
+    audio.src = ttsState.audioUrl;
+    document.getElementById('ttsAudioPreviewContainer').style.display = 'block';
+    document.getElementById('ttsFallbackMessage').style.display = 'none';
+    document.getElementById('btnPlaceTTSPodcast').disabled = false;
+    showToast('Audio subido: ' + file.name, 'success');
 }
 
 function activateTTSPodcastPlacement() {
@@ -146,9 +201,13 @@ function activateTTSPodcastPlacement() {
         showToast('Carga un PDF primero.', 'warning');
         return;
     }
+    if (!ttsState.audioBlob) {
+        showToast('Genera o sube un archivo de audio primero.', 'warning');
+        return;
+    }
     ttsState.placementMode = true;
     document.getElementById('ttsPodcastCanvas').style.cursor = 'crosshair';
-    alert("Haz clic en la página del PDF donde quieras el icono.");
+    showToast('Haz clic en la página del PDF donde quieras el icono.', 'info');
 }
 
 async function saveTTSPodcastPDF() {
@@ -228,11 +287,11 @@ async function saveTTSPodcastPDF() {
         a.download = "podcast_tts_doc.pdf";
         a.click();
 
-        alert("PDF guardado correctamente.");
+        showToast('PDF guardado correctamente.', 'success');
 
     } catch (e) {
         console.error(e);
-        alert("Error guardando PDF: " + e.message);
+        showToast('Error guardando PDF: ' + e.message, 'error');
     } finally {
         btn.textContent = "💾 Guardar PDF";
         btn.disabled = false;

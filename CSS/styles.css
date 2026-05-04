@@ -133,6 +133,19 @@ body.dark .manim-info-box h4 {
     color: #60a5fa;
 }
 
+/* TTS Fallback message */
+#ttsFallbackMessage {
+    background: #fffbeb;
+    border-color: #fcd34d;
+    color: #92400e;
+}
+
+body.dark #ttsFallbackMessage {
+    background: #451a03;
+    border-color: #b45309;
+    color: #fcd34d;
+}
+
 body.dark .floating-controls {
     background: #1e293b;
     color: var(--text-main);
