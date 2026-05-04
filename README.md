@@ -24,6 +24,15 @@ Aplicación web completa para manipular archivos PDF directamente en el navegado
 - **Podcast Studio**: Graba audio desde el micrófono y adhiérelo al PDF como archivo adjunto.
 - **Texto a Podcast**: Convierte texto a voz con Google TTS y adhiérelo al PDF.
 
+### 📖 Lector Bilingüe / Vocabulario Interactivo
+- **Lectura en voz alta** de cualquier PDF resaltando automáticamente la palabra o frase actual.
+- **Modo Karaoke**: Sombrea visualmente el texto a medida que se lee, ayudando a seguir la lectura.
+- **Modo Palabra por Palabra** o **Frase por Frase**: adaptable al nivel del estudiante.
+- **Traducción en tiempo real** con cache inteligente. Muestra la traducción de cada palabra/frase en un panel lateral.
+- **Stop words inteligentes**: omite artículos y preposiciones comunes para enfocarse en vocabulario útil.
+- **Navegación con teclado**: Espacio = Play/Pausa, Flechas = navegar.
+- Soporta cualquier combinación de idiomas (Inglés, Español, Francés, Alemán, Italiano, Portugués).
+
 ### 🎬 Narración de Documentos (Manim)
 Nueva funcionalidad que integra el pipeline de **[manim-narracion](skills/manim-narracion.md)**:
 - Extrae texto de cualquier PDF y lo divide en **escenas narradas** de ~100-190 palabras.

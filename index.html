@@ -28,6 +28,7 @@
                 <button class="tab-btn" data-tab="podcast" onclick="switchTab('podcast')">Podcast</button>
                 <button class="tab-btn" data-tab="tts-podcast" onclick="switchTab('tts-podcast')">Texto a Podcast</button>
                 <button class="tab-btn" data-tab="manim-narrator" onclick="switchTab('manim-narrator')">🎬 Narración de Documentos</button>
+                <button class="tab-btn" data-tab="vocab-reader" onclick="switchTab('vocab-reader')">📖 Lector Vocabulario</button>
             </div>
         </aside>
 
@@ -624,6 +625,113 @@
                 </div>
             </div>
 
+            <!-- VOCAB READER TAB -->
+            <div id="vocab-reader" class="tab-content full-height">
+                <div class="side-layout">
+                    <div class="sidebar-controls">
+                        <h3>📖 Lector Bilingüe</h3>
+
+                        <button class="btn" style="width:100%; margin-bottom:10px;"
+                            onclick="document.getElementById('vocabFileInput').click()">
+                            📂 Cargar PDF
+                        </button>
+                        <input type="file" id="vocabFileInput" accept="application/pdf" style="display: none;"
+                            onchange="handleVocabFile(this)">
+
+                        <hr>
+
+                        <div style="display:flex; gap:5px; margin-bottom: 10px;">
+                            <button class="btn" style="flex:1; font-size: 0.8rem;" onclick="vocabSetZoom('fit')">Ajustar Ancho</button>
+                            <button class="btn" style="width: 30px;" onclick="vocabChangeZoom(0.2)">+</button>
+                            <button class="btn" style="width: 30px;" onclick="vocabChangeZoom(-0.2)">-</button>
+                        </div>
+
+                        <div style="display:flex; gap:5px; margin-bottom: 10px;">
+                            <button class="btn" style="flex:1;" onclick="vocabChangePage(-1)">⏮️ Página</button>
+                            <button class="btn" style="flex:1;" onclick="vocabChangePage(1)">Página ⏭️</button>
+                        </div>
+                        <div id="vocabPageLabel" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px;">1 / 1</div>
+
+                        <hr>
+
+                        <div class="row" style="margin-bottom: 10px;">
+                            <div class="col">
+                                <label>Idioma origen</label>
+                                <select id="vocabSourceLang" class="form-control" onchange="onVocabLangChange()">
+                                    <option value="en" selected>Inglés</option>
+                                    <option value="es">Español</option>
+                                    <option value="fr">Francés</option>
+                                    <option value="de">Alemán</option>
+                                    <option value="it">Italiano</option>
+                                    <option value="pt">Portugués</option>
+                                </select>
+                            </div>
+                            <div class="col">
+                                <label>Idioma destino</label>
+                                <select id="vocabTargetLang" class="form-control" onchange="onVocabLangChange()">
+                                    <option value="es" selected>Español</option>
+                                    <option value="en">Inglés</option>
+                                    <option value="fr">Francés</option>
+                                    <option value="de">Alemán</option>
+                                    <option value="it">Italiano</option>
+                                    <option value="pt">Portugués</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <label>Modo de lectura</label>
+                        <select id="vocabMode" class="form-control" onchange="onVocabModeChange()" style="margin-bottom: 10px;">
+                            <option value="phrase">Frase por frase</option>
+                            <option value="word">Palabra por palabra</option>
+                        </select>
+
+                        <label>Velocidad: <span id="vocabRateValue">0.9</span>x</label>
+                        <input type="range" id="vocabRate" min="0.5" max="1.5" step="0.1" value="0.9" class="form-control"
+                            oninput="document.getElementById('vocabRateValue').textContent=this.value; onVocabRateChange()"
+                            style="margin-bottom: 15px;">
+
+                        <div style="display:flex; gap:5px; margin-bottom: 15px; flex-wrap: wrap;">
+                            <button id="vocabPlayBtn" class="btn" onclick="vocabTogglePlay()" style="flex:1; background: var(--success); color: white;">▶️ Leer</button>
+                            <button class="btn" onclick="vocabStop()" style="flex:1; background: var(--danger); color: white;">⏹️ Detener</button>
+                        </div>
+
+                        <div style="display:flex; gap:5px; margin-bottom: 15px;">
+                            <button class="btn" onclick="vocabPrev()" style="flex:1;">⬅️ Anterior</button>
+                            <button class="btn" onclick="vocabNext()" style="flex:1;">Siguiente ➡️</button>
+                        </div>
+
+                        <hr>
+
+                        <div style="padding: 12px; background: var(--bg-body); border-radius: var(--radius); border: 1px solid var(--border);">
+                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px;">PALABRA / FRASE</div>
+                            <div id="vocabOriginal" style="font-size: 1.1rem; font-weight: 600; color: var(--text-main); margin-bottom: 8px; min-height: 28px;">—</div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px;">TRADUCCIÓN</div>
+                            <div id="vocabTranslation" style="font-size: 1rem; color: var(--primary); min-height: 24px;">—</div>
+                            <div id="vocabProgress" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 8px; text-align: right;">0 / 0</div>
+                        </div>
+
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 10px;">
+                            <b>Atajos:</b> Espacio = Play/Pausa, ← → = Navegar
+                        </div>
+
+                        <div id="vocabStatus" class="logs" style="margin-top: 10px;">Carga un PDF para comenzar.</div>
+                    </div>
+
+                    <div class="viewer-wrap">
+                        <div id="vocabWrapper" style="position: relative;">
+                            <canvas id="vocabCanvas" style="display:block; border: 1px solid black;"></canvas>
+                            <div id="vocabTextLayer" class="textLayer"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="floating-controls">
+                    <button onclick="vocabChangePage(-1)">⏮️</button>
+                    <span id="vocabPageLabelFloating">1 / 1</span>
+                    <button onclick="vocabChangePage(1)">⏭️</button>
+                </div>
+            </div>
+
             <!-- MANIM NARRATOR TAB -->
             <div id="manim-narrator" class="tab-content">
                 <div class="form-group upload-box">
@@ -937,6 +1045,7 @@
     <script src="JS/tabs/podcast.js" defer></script>
     <script src="JS/tabs/tts-podcast.js" defer></script>
     <script src="JS/tabs/manim-narrator.js" defer></script>
+    <script src="JS/tabs/vocab-reader.js" defer></script>
 
     <!-- Toast Container -->
     <div id="toastContainer"></div>

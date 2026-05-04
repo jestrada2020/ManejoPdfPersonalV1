@@ -146,6 +146,30 @@ body.dark #ttsFallbackMessage {
     color: #fcd34d;
 }
 
+/* ============================================================
+   Vocabulary Reader Highlighting
+   ============================================================ */
+#vocabTextLayer {
+    opacity: 0.35;
+}
+
+.vocab-highlight {
+    background: rgba(250, 204, 21, 0.85) !important;
+    border-radius: 4px;
+    box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.6);
+    transition: background 0.1s ease;
+    color: transparent !important;
+}
+
+body.dark #vocabTextLayer {
+    opacity: 0.45;
+}
+
+body.dark .vocab-highlight {
+    background: rgba(234, 179, 8, 0.8) !important;
+    box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.7);
+}
+
 body.dark .floating-controls {
     background: #1e293b;
     color: var(--text-main);

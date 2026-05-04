@@ -148,7 +148,8 @@ function routeFilesToActiveTab(pdfFiles) {
         'translate-es-en': 'esEnFileInput',
         'podcast': 'podcastFileInput',
         'tts-podcast': 'ttsPodcastFileInput',
-        'manim-narrator': 'manimFileInput'
+        'manim-narrator': 'manimFileInput',
+        'vocab-reader': 'vocabFileInput'
     };
 
     const inputId = inputMap[tabId];
