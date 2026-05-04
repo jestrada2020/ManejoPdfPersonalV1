@@ -309,8 +309,7 @@ function createTranslatorEngine(config) {
             for (let i = 0; i < chunks.length; i++) {
                 const query = chunks[i];
                 const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${config.sourceLang}&tl=${config.targetLang}&dt=t&q=${encodeURIComponent(query)}`;
-                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-                const response = await fetch(proxyUrl);
+                const response = await fetch(url);
                 const data = await response.json();
                 const piece = data[0].map(item => item[0]).join('');
                 translated += (translated ? ' ' : '') + piece;
