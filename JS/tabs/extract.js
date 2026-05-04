@@ -15,7 +15,7 @@ async function extractPages() {
     const resultArea = document.getElementById('extractResult');
 
     if (isNaN(start) || isNaN(end) || start < 1 || end < start) {
-        alert("Rango de páginas inválido.");
+        showToast('Rango de páginas inválido.', 'warning');
         return;
     }
 
@@ -70,7 +70,7 @@ async function extractPages() {
             const totalPages = pdfDoc.getPageCount();
 
             if (end > totalPages) {
-                alert(`El PDF solo tiene ${totalPages} páginas.`);
+                showToast(`El PDF solo tiene ${totalPages} páginas.`, 'warning');
                 return;
             }
 
@@ -92,7 +92,7 @@ async function extractPages() {
         }
 
     } catch (error) {
-        alert("Error: " + error.message);
+        showToast('Error: ' + error.message, 'error');
         console.error(error);
     } finally {
         btn.disabled = false;

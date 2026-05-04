@@ -89,7 +89,7 @@ async function mergePDFs() {
         logs.textContent = "¡Completado!";
 
     } catch (error) {
-        alert(error.message);
+        showToast(error.message, 'error');
         logs.textContent = "Error: " + error.message;
     } finally {
         btn.disabled = false;

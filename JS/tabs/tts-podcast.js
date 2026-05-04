@@ -79,7 +79,7 @@ async function generateTTSAudio() {
     const lang = document.getElementById('ttsLang').value;
 
     if (!text) {
-        alert("Por favor escribe algún texto.");
+        showToast('Por favor escribe algún texto.', 'warning');
         return;
     }
 
@@ -134,7 +134,7 @@ async function generateTTSAudio() {
 
     } catch (e) {
         console.error(e);
-        alert("Error generando audio: " + e.message);
+        showToast('Error generando audio: ' + e.message, 'error');
     } finally {
         btn.disabled = false;
         btn.textContent = originalText;
@@ -143,7 +143,7 @@ async function generateTTSAudio() {
 
 function activateTTSPodcastPlacement() {
     if (!ttsState.pdfDoc) {
-        alert("Carga un PDF primero.");
+        showToast('Carga un PDF primero.', 'warning');
         return;
     }
     ttsState.placementMode = true;

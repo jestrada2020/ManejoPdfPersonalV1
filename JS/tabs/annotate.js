@@ -139,7 +139,7 @@ async function startAnnotation(mode = 'annotate') {
         renderPage(annotState.currentPage);
     } catch (e) {
         console.error(e);
-        alert("Error al cargar PDF: " + e.message);
+        showToast('Error al cargar PDF: ' + e.message, 'error');
     }
     input.value = '';
 }
@@ -665,7 +665,7 @@ async function saveAnnotations() {
 
     } catch (e) {
         console.error(e);
-        alert("Error guardando PDF: " + e.message);
+        showToast('Error guardando PDF: ' + e.message, 'error');
     } finally {
         btn.textContent = originalText;
         btn.disabled = false;

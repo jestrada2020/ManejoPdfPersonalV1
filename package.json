@@ -1,12 +1,24 @@
 {
-  "name": "manejopdfpersonalv1-mainmodificado",
-  "version": "1.0.0",
-  "description": "Aplicación para la manipulación de pdf",
-  "main": "index.js",
+  "name": "manejopdfpersonalv1",
+  "version": "2.0.0",
+  "description": "Aplicación web avanzada para la manipulación de PDFs directamente en el navegador. Incluye herramientas de unión, extracción, traducción, anotación, OCR, TTS y generación de proyectos Manim con narración sincronizada.",
+  "main": "index.html",
   "scripts": {
+    "start": "npx serve .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
+  "keywords": [
+    "pdf",
+    "manipulacion-pdf",
+    "pdf-lib",
+    "pdfjs",
+    "ocr",
+    "traduccion",
+    "tts",
+    "manim",
+    "narracion",
+    "educacion"
+  ],
   "author": "",
-  "license": "ISC"
+  "license": "MIT"
 }

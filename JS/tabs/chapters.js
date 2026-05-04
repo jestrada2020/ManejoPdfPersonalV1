@@ -12,7 +12,7 @@ async function detectChapters() {
 
     if (!input.files.length) return;
     if (!patterns) {
-        alert("Ingrese al menos un patrón de búsqueda.");
+        showToast('Ingrese al menos un patrón de búsqueda.', 'warning');
         return;
     }
 
@@ -96,7 +96,7 @@ async function detectChapters() {
 
         if (chapters.length === 0) {
             logs.textContent = "No se detectaron capítulos.";
-            alert("No se encontraron capítulos con los patrones especificados.");
+            showToast('No se encontraron capítulos con los patrones especificados.', 'info');
             return;
         }
 
@@ -120,7 +120,7 @@ async function detectChapters() {
 
     } catch (error) {
         console.error(error);
-        alert("Error durante la detección: " + error.message);
+        showToast('Error durante la detección: ' + error.message, 'error');
         logs.textContent = "Error.";
     } finally {
         btn.disabled = false;
@@ -199,7 +199,7 @@ async function extractSingleChapter(idx) {
 
     } catch (error) {
         console.error(error);
-        alert("Error extrayendo capítulo: " + error.message);
+        showToast('Error extrayendo capítulo: ' + error.message, 'error');
         logs.textContent = "Error.";
     }
 }
@@ -210,7 +210,7 @@ async function extractAllChapters() {
     const selectedChapters = chaptersData.chapters.filter(ch => ch.selected);
 
     if (selectedChapters.length === 0) {
-        alert("Debe seleccionar al menos un capítulo.");
+        showToast('Debe seleccionar al menos un capítulo.', 'warning');
         return;
     }
 
@@ -269,7 +269,7 @@ async function extractAllChapters() {
 
     } catch (error) {
         console.error(error);
-        alert("Error durante la extracción: " + error.message);
+        showToast('Error durante la extracción: ' + error.message, 'error');
         logs.textContent = "Error.";
     } finally {
         extractBtn.disabled = false;

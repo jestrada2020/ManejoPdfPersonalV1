@@ -21,7 +21,7 @@ async function handleTranslateFileBase(input) {
         renderTranslatePage(1);
     } catch (e) {
         console.error(e);
-        alert("Error cargando PDF: " + e.message);
+        showToast('Error cargando PDF: ' + e.message, 'error');
     }
 }
 
@@ -98,7 +98,7 @@ function getSelectedText() {
 function translateSelection() {
     const text = getSelectedText();
     if (!text) {
-        alert("Por favor, selecciona texto del PDF primero.");
+        showToast('Por favor, selecciona texto del PDF primero.', 'warning');
         return;
     }
     const lang = document.getElementById('transLang').value;
@@ -139,7 +139,7 @@ function previewVoice() {
 function speakSelection() {
     const text = getSelectedText();
     if (!text) {
-        alert("Selecciona texto para leer.");
+        showToast('Selecciona texto para leer.', 'warning');
         return;
     }
     stopSpeech();

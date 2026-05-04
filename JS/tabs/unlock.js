@@ -58,11 +58,11 @@ async function unlockPDF() {
                 } catch (advError) {
                     console.error("Advanced mode error:", advError);
                     logs.textContent = "Error en Modo Avanzado: " + advError.message;
-                    alert("Error: " + advError.message);
+                    showToast('Error: ' + advError.message, 'error');
                 }
             }
         } else {
-            alert("Error: " + error.message);
+            showToast('Error: ' + error.message, 'error');
         }
     } finally {
         btn.disabled = false;

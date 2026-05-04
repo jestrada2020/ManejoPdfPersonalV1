@@ -27,6 +27,7 @@
                 <button class="tab-btn" data-tab="translate-es-en" onclick="switchTab('translate-es-en')">Español A Ingles</button>
                 <button class="tab-btn" data-tab="podcast" onclick="switchTab('podcast')">Podcast</button>
                 <button class="tab-btn" data-tab="tts-podcast" onclick="switchTab('tts-podcast')">Texto a Podcast</button>
+                <button class="tab-btn" data-tab="manim-narrator" onclick="switchTab('manim-narrator')">🎬 Narración de Documentos</button>
             </div>
         </aside>
 
@@ -572,8 +573,7 @@
                         <hr>
 
                         <label><b>1. Grabadora</b></label>
-                        <div
-                            style="text-align:center; border: 1px solid #ccc; padding: 10px; border-radius: 5px; background: white;">
+                        <div class="recorder-box">
                             <canvas id="audioVisualizer" width="200" height="50"
                                 style="width:100%; height:50px; background:#222; margin-bottom:5px;"></canvas>
                             <div id="recordTimer" style="font-size: 1.2rem; font-weight: bold; margin-bottom: 5px;">00:00
@@ -621,6 +621,91 @@
                     <button onclick="changePodcastPage(-1)">⏮️</button>
                     <span id="podcastPageLabel">1 / 1</span>
                     <button onclick="changePodcastPage(1)">⏭️</button>
+                </div>
+            </div>
+
+            <!-- MANIM NARRATOR TAB -->
+            <div id="manim-narrator" class="tab-content">
+                <div class="form-group upload-box">
+                    <label style="font-size: 1.1rem; margin-bottom: 10px; display:block;">1. Cargar Documento PDF</label>
+                    <input type="file" id="manimFileInput" accept="application/pdf" style="display: none;"
+                        onchange="handleManimFile(this)">
+                    <button class="btn center-btn" onclick="document.getElementById('manimFileInput').click()">
+                        📂 Cargar PDF (Narración)
+                    </button>
+                    <div id="manimFileInfo" class="file-info-box">
+                        <span id="manimFileName" style="font-weight:bold;"></span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>2. Configuración de Escenas</label>
+                    <div class="row">
+                        <div class="col">
+                            <label>Palabras por escena</label>
+                            <input type="number" id="manimWordsPerScene" value="150" min="50" max="300">
+                            <small style="color: var(--text-muted); display: block; margin-top: 4px;">
+                                Recomendado: 100-190 palabras según el skill.
+                            </small>
+                        </div>
+                        <div class="col">
+                            <label>Título del proyecto</label>
+                            <input type="text" id="manimProjectTitle" placeholder="MiDocumento" value="ProyectoNarracion">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>3. Opciones de narración</label>
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                        <label style="display:flex; align-items:center; cursor:pointer; width: auto;">
+                            <input type="checkbox" id="manimAutoDetectChapters" checked style="width:auto; margin-right:10px;">
+                            <span>Detectar capítulos automáticamente</span>
+                        </label>
+                        <label style="display:flex; align-items:center; cursor:pointer; width: auto;">
+                            <input type="checkbox" id="manimSplitByPages" style="width:auto; margin-right:10px;">
+                            <span>Una escena por página</span>
+                        </label>
+                    </div>
+                </div>
+
+                <button id="manimGenerateBtn" class="btn" disabled onclick="generateManimProject()">
+                    🎬 Generar Proyecto Manim
+                </button>
+                <p class="logs" id="manimLogs"></p>
+
+                <div id="manimPreview" class="preview-box" style="display:none;">
+                    <h3 style="margin-top: 0; font-size: 1.1rem; color: var(--text-main);">Escenas generadas:</h3>
+                    <div id="manimScenesList" style="margin-bottom: 15px; max-height: 300px; overflow-y: auto;"></div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn" onclick="downloadManimZip()">
+                            📦 Descargar ZIP del Proyecto
+                        </button>
+                        <button class="btn" onclick="cancelManim()" style="background: #6b7280;">
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+
+                <div id="manimResult" class="result-area">
+                    ¡Proyecto listo! <a id="manimDownload" href="#" download>Descargar ZIP</a>
+                </div>
+
+                <div class="form-group manim-info-box">
+                    <h4 style="margin-top:0; color: #0369a1;">ℹ️ Sobre esta funcionalidad</h4>
+                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 8px;">
+                        Esta herramienta genera un proyecto listo para el pipeline <strong>Manim + Narración</strong>.
+                        El ZIP descargable incluye:
+                    </p>
+                    <ul style="font-size: 0.9rem; color: var(--text-muted); margin: 0; padding-left: 20px;">
+                        <li>Archivos <code>Escena_XXX_narracion.txt</code> con el texto listo para TTS (voz es-MX-JorgeNeural)</li>
+                        <li>Templates <code>Escena_XXX.py</code> con la paleta de colores y estructura del skill</li>
+                        <li>Script <code>merge_video.py</code> para sincronizar audio y video con setpts</li>
+                        <li>Instrucciones de uso</li>
+                    </ul>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 8px;">
+                        Requisito: tener instalado el entorno Manim con edge-tts y ffmpeg.
+                    </p>
                 </div>
             </div>
 
@@ -824,6 +909,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
     <script src="JS/common.js" defer></script>
     <script src="JS/tabs/merge.js" defer></script>
     <script src="JS/tabs/extract.js" defer></script>
@@ -833,10 +919,21 @@
     <script src="JS/tabs/annotate.js" defer></script>
     <script src="JS/tabs/media.js" defer></script>
     <script src="JS/tabs/translate.js" defer></script>
+    <script src="JS/tabs/translator-engine.js" defer></script>
     <script src="JS/tabs/translate-en-es.js" defer></script>
     <script src="JS/tabs/translate-es-en.js" defer></script>
     <script src="JS/tabs/podcast.js" defer></script>
     <script src="JS/tabs/tts-podcast.js" defer></script>
+    <script src="JS/tabs/manim-narrator.js" defer></script>
+
+    <!-- Toast Container -->
+    <div id="toastContainer"></div>
+
+    <!-- Drag & Drop Overlay -->
+    <div id="dragOverlay">📄 Suelta los archivos PDF aquí</div>
+
+    <!-- Dark Mode Toggle -->
+    <button id="darkModeToggle" class="dark-mode-toggle" title="Cambiar tema">🌙</button>
 </body>
 
 </html>

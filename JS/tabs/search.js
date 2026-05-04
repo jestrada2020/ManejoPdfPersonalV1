@@ -10,7 +10,7 @@ async function searchAndExtract() {
     const password = document.getElementById('searchFilePass').value;
 
     if (!input.files.length) return;
-    if (!query) { alert("Introduce texto."); return; }
+    if (!query) { showToast('Introduce texto.', 'warning'); return; }
 
     btn.disabled = true;
     btn.textContent = "Buscando...";
@@ -56,7 +56,7 @@ async function searchAndExtract() {
 
         if (matchingPages.length === 0) {
             logs.textContent = "No se encontraron coinciciencias.";
-            alert("No encontrado.");
+            showToast('No encontrado.', 'info');
         } else {
             searchResultData = {
                 bytes: bytes,
@@ -69,7 +69,7 @@ async function searchAndExtract() {
 
     } catch (error) {
         console.error(error);
-        alert("Error: " + error.message);
+        showToast('Error: ' + error.message, 'error');
         logs.textContent = "Error.";
     } finally {
         btn.disabled = false;
@@ -128,7 +128,7 @@ async function extractFoundPages() {
     const selectedPages = searchResultData.matchingPages.filter(p => p.selected);
 
     if (selectedPages.length === 0) {
-        alert("Debe seleccionar al menos una página.");
+        showToast('Debe seleccionar al menos una página.', 'warning');
         return;
     }
 
@@ -168,7 +168,7 @@ async function extractFoundPages() {
 
     } catch (error) {
         console.error(error);
-        alert("Error durante la extracción: " + error.message);
+        showToast('Error durante la extracción: ' + error.message, 'error');
         logs.textContent = "Error en extracción.";
     } finally {
         extractBtn.disabled = false;

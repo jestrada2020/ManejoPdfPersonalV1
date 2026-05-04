@@ -27,7 +27,7 @@ async function handlePodcastFileBase(input) {
         renderPodcastPage(1);
     } catch (e) {
         console.error(e);
-        alert("Error cargando PDF: " + e.message);
+        showToast('Error cargando PDF: ' + e.message, 'error');
     }
 }
 
@@ -120,7 +120,7 @@ async function startRecording() {
         document.getElementById('btnRecordStart').classList.add('recording-active');
 
     } catch (e) {
-        alert("No se pudo acceder al micrófono: " + e.message + "\nIntenta usar 'Subir archivo' si estás en local.");
+        showToast('No se pudo acceder al micrófono: ' + e.message, 'error');
     }
 }
 
@@ -297,7 +297,7 @@ async function savePodcastPDF() {
 
     } catch (e) {
         console.error(e);
-        alert("Error guardando: " + e.message);
+        showToast('Error guardando: ' + e.message, 'error');
     } finally {
         btn.textContent = "💾 Guardar PDF";
         btn.disabled = false;
