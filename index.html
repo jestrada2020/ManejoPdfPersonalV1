@@ -17,6 +17,8 @@
             <div class="tabs">
                 <button class="tab-btn active" data-tab="merge" onclick="switchTab('merge')">Unir PDFs</button>
                 <button class="tab-btn" data-tab="extract" onclick="switchTab('extract')">Extraer por Rango</button>
+                <button class="tab-btn" data-tab="extract-sequence" onclick="switchTab('extract-sequence')">Extraer por Secuencia</button>
+                <button class="tab-btn" data-tab="merge-sequence" onclick="switchTab('merge-sequence')">Unir Secuencia</button>
                 <button class="tab-btn" data-tab="search" onclick="switchTab('search')">Extraer por Búsqueda</button>
                 <button class="tab-btn" data-tab="chapters" onclick="switchTab('chapters')">Extracción de Capítulos</button>
                 <button class="tab-btn" data-tab="unlock" onclick="switchTab('unlock')">Desbloquear PDF</button>
@@ -109,6 +111,125 @@
 
                 <div id="extractResult" class="result-area">
                     ¡Éxito! <a id="extractDownload" href="#" download>Descargar PDF Extraído</a>
+                </div>
+            </div>
+
+            <!-- EXTRACT SEQUENCE TAB -->
+            <div id="extract-sequence" class="tab-content">
+                <div class="form-group upload-box">
+                    <label style="font-size: 1.1rem; margin-bottom: 10px; display:block;">1. Seleccionar Archivo PDF</label>
+
+                    <input type="file" id="extract-sequenceFileInput" accept="application/pdf" style="display: none;"
+                        onchange="handleSingleFileSelect('extract-sequence')">
+                    <button class="btn center-btn" onclick="document.getElementById('extract-sequenceFileInput').click()">
+                        📂 Cargar PDF (Secuencia)
+                    </button>
+
+                    <div id="extract-sequenceFileInfo" class="file-info-box">
+                        <span id="extract-sequenceFileName" style="font-weight:bold;"></span>
+                        <div style="margin-top: 8px;">
+                            <input type="password" id="extract-sequenceFilePass" placeholder="Contraseña (si tiene)">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>2. Secuencia de Rangos</label>
+                    <small style="color: var(--text-muted); display: block; margin-bottom: 8px;">
+                        Agregue uno o más rangos. Cada rango generará un archivo PDF con el nombre indicado.
+                    </small>
+                    <div id="extractSeqRangesContainer" style="display: flex; flex-direction: column; gap: 10px;">
+                        <!-- Los rangos se agregan dinámicamente -->
+                    </div>
+                    <button class="btn" onclick="addExtractSeqRange()" style="margin-top: 10px; background: #0f766e; color: white; width: auto;">
+                        + Agregar Rango
+                    </button>
+                </div>
+
+                <div class="form-group">
+                    <label style="display:flex; align-items:center; cursor:pointer;">
+                        <input type="checkbox" id="extractSeqRasterMode" style="width:auto; margin-right:10px;">
+                        <span>Modo Compatibilidad (Imprimir como Imagen)</span>
+                    </label>
+                    <small style="color: var(--text-muted); display: block; margin-top: 4px;">
+                        Úselo si recibe errores de contraseña o si el archivo está protegido. Esto convertirá las páginas en imágenes.
+                    </small>
+                </div>
+
+                <button id="extract-sequenceBtn" class="btn" disabled onclick="extractSequencePages()">Extraer Secuencia</button>
+                <p class="logs" id="extractSeqLogs"></p>
+
+                <div id="extractSeqPreview" class="preview-box" style="display:none;">
+                    <h3 style="margin-top: 0; font-size: 1.1rem; color: var(--text-main);">Rangos a extraer:</h3>
+                    <div id="extractSeqRangesList" style="margin-bottom: 15px; max-height: 300px; overflow-y: auto;"></div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button id="extractSeqAllBtn" class="btn" onclick="extractSeqConfirmAll()">
+                            📦 Extraer Todos los Rangos
+                        </button>
+                        <button class="btn" onclick="cancelExtractSeq()" style="background: #6b7280;">
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+
+                <div id="extractSeqResult" class="result-area">
+                    <p id="extractSeqResultText">¡Éxito! Se han generado los archivos.</p>
+                    <div id="extractSeqDownloadLinks" style="margin-top: 10px;"></div>
+                </div>
+            </div>
+
+            <!-- MERGE SEQUENCE TAB -->
+            <div id="merge-sequence" class="tab-content">
+                <div class="form-group upload-box">
+                    <label style="font-size: 1.1rem; margin-bottom: 10px; display:block;">1. Seleccionar Archivo PDF</label>
+
+                    <input type="file" id="merge-sequenceFileInput" accept="application/pdf" style="display: none;"
+                        onchange="handleSingleFileSelect('merge-sequence')">
+                    <button class="btn center-btn" onclick="document.getElementById('merge-sequenceFileInput').click()">
+                        📂 Cargar PDF (Unir Secuencia)
+                    </button>
+
+                    <div id="merge-sequenceFileInfo" class="file-info-box">
+                        <span id="merge-sequenceFileName" style="font-weight:bold;"></span>
+                        <div style="margin-top: 8px;">
+                            <input type="password" id="merge-sequenceFilePass" placeholder="Contraseña (si tiene)">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>2. Secuencia de Rangos a Unir</label>
+                    <small style="color: var(--text-muted); display: block; margin-bottom: 8px;">
+                        Agregue los rangos en el orden que desea que aparezcan en el PDF final.
+                    </small>
+                    <div id="mergeSeqRangesContainer" style="display: flex; flex-direction: column; gap: 10px;">
+                        <!-- Los rangos se agregan dinámicamente -->
+                    </div>
+                    <button class="btn" onclick="addMergeSeqRange()" style="margin-top: 10px; background: #0f766e; color: white; width: auto;">
+                        + Agregar Rango
+                    </button>
+                </div>
+
+                <div class="form-group">
+                    <label style="display:flex; align-items:center; cursor:pointer;">
+                        <input type="checkbox" id="mergeSeqRasterMode" style="width:auto; margin-right:10px;">
+                        <span>Modo Compatibilidad (Imprimir como Imagen)</span>
+                    </label>
+                    <small style="color: var(--text-muted); display: block; margin-top: 4px;">
+                        Úselo si recibe errores de contraseña o si el archivo está protegido. Esto convertirá las páginas en imágenes.
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label>Nombre del archivo final</label>
+                    <input type="text" id="mergeSeqOutputName" placeholder="SecuenciaUnida.pdf" value="SecuenciaUnida.pdf">
+                </div>
+
+                <button id="merge-sequenceBtn" class="btn" disabled onclick="mergeSequencePages()">Unificar Secuencia</button>
+                <p class="logs" id="mergeSeqLogs"></p>
+
+                <div id="mergeSeqResult" class="result-area">
+                    ¡Éxito! <a id="mergeSeqDownload" href="#" download>Descargar PDF Unido</a>
                 </div>
             </div>
 
@@ -1039,6 +1160,8 @@
     <script src="JS/common.js" defer></script>
     <script src="JS/tabs/merge.js" defer></script>
     <script src="JS/tabs/extract.js" defer></script>
+    <script src="JS/tabs/extract-sequence.js" defer></script>
+    <script src="JS/tabs/merge-sequence.js" defer></script>
     <script src="JS/tabs/search.js" defer></script>
     <script src="JS/tabs/chapters.js" defer></script>
     <script src="JS/tabs/unlock.js" defer></script>

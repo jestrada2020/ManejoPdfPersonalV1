@@ -138,6 +138,8 @@ function routeFilesToActiveTab(pdfFiles) {
 
     const inputMap = {
         'extract': 'extractFileInput',
+        'extract-sequence': 'extract-sequenceFileInput',
+        'merge-sequence': 'merge-sequenceFileInput',
         'search': 'searchFileInput',
         'chapters': 'chaptersFileInput',
         'unlock': 'unlockFileInput',
