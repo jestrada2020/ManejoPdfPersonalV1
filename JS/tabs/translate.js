@@ -109,28 +109,27 @@ function translateSelection() {
 let synth = window.speechSynthesis;
 let voices = [];
 
-function loadVoices() {
+// Nombre propio: vocab-reader.js también tenía un loadVoices() global que sobrescribía a este
+function loadTranslateVoices() {
     voices = synth.getVoices();
     const select = document.getElementById('ttsVoice');
+    if (!select || !voices.length) return;
+    const previous = select.value;
     select.innerHTML = '';
 
+    // Por defecto: la voz del narrador elegido (Jorge, México) o la más natural en español
+    const preferred = pickBrowserVoice(getNarrator().lang);
     voices.forEach((voice, i) => {
         const option = document.createElement('option');
         option.value = i;
         option.textContent = `${voice.name} (${voice.lang})`;
-
-        if (voice.name.includes('Google') && voice.lang.includes('es')) {
-            option.selected = true;
-        }
+        option.selected = previous ? String(i) === previous : voice === preferred;
         select.appendChild(option);
     });
 }
 
-if (speechSynthesis.onvoiceschanged !== undefined) {
-    speechSynthesis.onvoiceschanged = loadVoices;
-}
-
-loadVoices();
+speechSynthesis.addEventListener('voiceschanged', loadTranslateVoices);
+loadTranslateVoices();
 
 function previewVoice() {
     return;
@@ -146,8 +145,10 @@ function speakSelection() {
 
     const utterance = new SpeechSynthesisUtterance(text);
     const voiceIndex = document.getElementById('ttsVoice').value;
-    if (voiceIndex) {
-        utterance.voice = voices[voiceIndex];
+    const voice = voiceIndex !== '' ? voices[voiceIndex] : pickBrowserVoice();
+    if (voice) {
+        utterance.voice = voice;
+        utterance.lang = voice.lang;
     }
     utterance.rate = parseFloat(document.getElementById('ttsRate').value);
     synth.speak(utterance);

@@ -7,6 +7,7 @@ Aplicación web completa para manipular archivos PDF directamente en el navegado
 ### Manipulación de PDF
 - **Unir PDFs**: Combina múltiples archivos en uno solo, con soporte para contraseñas.
 - **Extraer por Rango**: Extrae páginas específicas con modo de compatibilidad (rasterización).
+- **Intercalar PDF**: Inserta otro PDF (todas sus hojas o un rango) cada N hojas del PDF de origen, o después de páginas concretas. Permite empezar en otra página, insertar también al final, ajustar las hojas al tamaño del origen, vista previa del orden y pegar el PDF con Ctrl+V.
 - **Extraer por Búsqueda**: Busca texto en el PDF y extrae las páginas coincidentes.
 - **Extracción de Capítulos**: Detecta capítulos automáticamente por patrones y extrae cada uno.
 - **Desbloquear PDF**: Elimina protecciones y restricciones de archivos PDF.
@@ -37,11 +38,14 @@ Aplicación web completa para manipular archivos PDF directamente en el navegado
 Nueva funcionalidad que integra el pipeline de **[manim-narracion](skills/manim-narracion.md)**:
 - Extrae texto de cualquier PDF y lo divide en **escenas narradas** de ~100-190 palabras.
 - Genera automáticamente:
-  - Archivos `_narracion.txt` listos para **edge-tts** (voz `es-MX-JorgeNeural`).
+  - Archivos `_narracion.txt` listos para **edge-tts** con el narrador elegido.
   - Templates `.py` con la **paleta de colores oficial** del skill (`#050a1a`, `#00e5ff`, etc.).
   - Script `merge_video.py` para sincronizar audio y video con `setpts`.
   - Scripts `.sh` para generar audio y renderizar escenas.
 - Exporta todo como un **ZIP descargable** listo para renderizar con Manim.
+- **Selector de narrador** (por defecto **Jorge, México** — `es-MX-JorgeNeural`) con voces neuronales de México, EE. UU., Colombia, Argentina, Chile, Perú, España e inglés multilingüe; velocidad y tono ajustables y botón **Probar narrador**. La elección se recuerda y la usan también el Lector, el Traductor y el Lector Vocabulario.
+- **Narración natural**: quita encabezados/pies repetidos, números de página e índices; une palabras cortadas con guion y líneas en párrafos reales; expande abreviaturas (Dr., p. ej., %, °C…); quita URLs y citas [12]; las escenas se cortan entre frases.
+- `generar_audio.sh` crea el MP3 y los subtítulos `.srt` de cada escena (requiere `edge-tts` ≥ 7.3: `pip install -U edge-tts`).
 
 ## 🛠️ Tecnologías
 
@@ -82,6 +86,7 @@ La aplicación soporta **modo oscuro** (toggle en la esquina inferior derecha). 
 │   └── tabs/
 │       ├── merge.js
 │       ├── extract.js
+│       ├── interleave.js       # Intercalar un PDF cada N hojas
 │       ├── search.js
 │       ├── chapters.js
 │       ├── unlock.js

@@ -19,14 +19,15 @@
                 <button class="tab-btn" data-tab="extract" onclick="switchTab('extract')">Extraer por Rango</button>
                 <button class="tab-btn" data-tab="extract-sequence" onclick="switchTab('extract-sequence')">Extraer por Secuencia</button>
                 <button class="tab-btn" data-tab="merge-sequence" onclick="switchTab('merge-sequence')">Unir Secuencia</button>
+                <button class="tab-btn" data-tab="interleave" onclick="switchTab('interleave')">📑 Intercalar PDF</button>
                 <button class="tab-btn" data-tab="search" onclick="switchTab('search')">Extraer por Búsqueda</button>
                 <button class="tab-btn" data-tab="chapters" onclick="switchTab('chapters')">Extracción de Capítulos</button>
                 <button class="tab-btn" data-tab="unlock" onclick="switchTab('unlock')">Desbloquear PDF</button>
                 <button class="tab-btn" data-tab="annotate" onclick="switchTab('annotate')">Anotar / Revisar</button>
                 <button class="tab-btn" data-tab="media" onclick="switchTab('media')">Añadir Videos / Audio</button>
                 <button class="tab-btn" data-tab="translate" onclick="switchTab('translate')">Traductor / Lector</button>
-                <button class="tab-btn" data-tab="translate-en-es" onclick="switchTab('translate-en-es')">Traduccion de textos de Ingles A Español</button>
-                <button class="tab-btn" data-tab="translate-es-en" onclick="switchTab('translate-es-en')">Español A Ingles</button>
+                <button class="tab-btn" data-tab="translate-en-es" onclick="switchTab('translate-en-es')">Traducción de textos de Inglés a Español</button>
+                <button class="tab-btn" data-tab="translate-es-en" onclick="switchTab('translate-es-en')">Español a Inglés</button>
                 <button class="tab-btn" data-tab="podcast" onclick="switchTab('podcast')">Podcast</button>
                 <button class="tab-btn" data-tab="tts-podcast" onclick="switchTab('tts-podcast')">Texto a Podcast</button>
                 <button class="tab-btn" data-tab="manim-narrator" onclick="switchTab('manim-narrator')">🎬 Narración de Documentos</button>
@@ -230,6 +231,128 @@
 
                 <div id="mergeSeqResult" class="result-area">
                     ¡Éxito! <a id="mergeSeqDownload" href="#" download>Descargar PDF Unido</a>
+                </div>
+            </div>
+
+            <!-- INTERLEAVE TAB -->
+            <div id="interleave" class="tab-content">
+                <div class="row">
+                    <div class="col">
+                        <div class="form-group upload-box">
+                            <label style="font-size: 1.1rem; margin-bottom: 10px; display:block;">1. PDF de origen</label>
+                            <input type="file" id="interleaveSourceInput" accept="application/pdf" style="display: none;"
+                                onchange="handleInterleaveFile('source', this.files[0])">
+                            <button class="btn center-btn" onclick="document.getElementById('interleaveSourceInput').click()">
+                                📂 Cargar PDF de origen
+                            </button>
+                            <div id="interleaveSourceInfo" class="file-info-box">
+                                <span id="interleaveSourceName" style="font-weight:bold;"></span>
+                                <div id="interleaveSourcePages" style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="form-group upload-box">
+                            <label style="font-size: 1.1rem; margin-bottom: 10px; display:block;">2. PDF a intercalar</label>
+                            <input type="file" id="interleaveInsertInput" accept="application/pdf" style="display: none;"
+                                onchange="handleInterleaveFile('insert', this.files[0])">
+                            <button class="btn center-btn" onclick="document.getElementById('interleaveInsertInput').click()">
+                                📎 Cargar PDF a intercalar
+                            </button>
+                            <small style="color: var(--text-muted); display: block; margin-top: 6px;">
+                                También puede copiar un archivo PDF y pegarlo aquí con Ctrl+V.
+                            </small>
+                            <div id="interleaveInsertInfo" class="file-info-box">
+                                <span id="interleaveInsertName" style="font-weight:bold;"></span>
+                                <div id="interleaveInsertPages" style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>3. Páginas del PDF a intercalar que se insertan</label>
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
+                        <label style="display:flex; align-items:center; cursor:pointer; width: auto; margin: 0;">
+                            <input type="radio" name="interleaveInsertScope" value="all" checked style="width:auto; margin-right:8px;"
+                                onchange="updateInterleaveForm()">
+                            <span>Todas</span>
+                        </label>
+                        <label style="display:flex; align-items:center; cursor:pointer; width: auto; margin: 0;">
+                            <input type="radio" name="interleaveInsertScope" value="range" style="width:auto; margin-right:8px;"
+                                onchange="updateInterleaveForm()">
+                            <span>Solo el rango</span>
+                        </label>
+                        <input type="number" id="interleaveInsertStart" min="1" value="1" style="width: 80px;" disabled> –
+                        <input type="number" id="interleaveInsertEnd" min="1" value="1" style="width: 80px;" disabled>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>4. ¿Dónde intercalar?</label>
+                    <select id="interleaveMode" class="form-control" onchange="updateInterleaveForm()">
+                        <option value="every">Cada cierto número de hojas (periodo)</option>
+                        <option value="list">Después de páginas específicas</option>
+                    </select>
+
+                    <div id="interleaveEveryBox" style="margin-top: 10px;">
+                        <div class="row">
+                            <div class="col">
+                                <label>Cada cuántas hojas del origen</label>
+                                <input type="number" id="interleaveEvery" min="1" value="1">
+                            </div>
+                            <div class="col">
+                                <label>Primera inserción después de la página</label>
+                                <input type="number" id="interleaveFirst" min="0" placeholder="Igual al periodo">
+                            </div>
+                        </div>
+                        <small style="color: var(--text-muted); display: block; margin-top: 4px;">
+                            Ej.: periodo 3 → se inserta después de las páginas 3, 6, 9… Use 0 en «primera inserción» para empezar antes de la página 1.
+                        </small>
+                        <label style="display:flex; align-items:center; cursor:pointer; margin-top: 8px;">
+                            <input type="checkbox" id="interleaveIncludeEnd" style="width:auto; margin-right:10px;">
+                            <span>Insertar también al final si el último bloque queda incompleto</span>
+                        </label>
+                    </div>
+
+                    <div id="interleaveListBox" style="margin-top: 10px; display: none;">
+                        <label>Insertar después de las páginas</label>
+                        <input type="text" id="interleavePageList" placeholder="Ej: 0, 5, 12, 20  (0 = antes de la primera página)">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label style="display:flex; align-items:center; cursor:pointer;">
+                        <input type="checkbox" id="interleaveFitSize" style="width:auto; margin-right:10px;">
+                        <span>Ajustar las hojas insertadas al tamaño de las páginas del origen</span>
+                    </label>
+                    <small style="color: var(--text-muted); display: block; margin-top: 4px;">
+                        Útil si los dos PDF tienen tamaños distintos (carta / A4). Las hojas se escalan sin deformarse y se centran.
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label>Nombre del archivo final</label>
+                    <input type="text" id="interleaveOutputName" value="pdf_intercalado.pdf">
+                </div>
+
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button id="interleavePreviewBtn" class="btn" disabled onclick="previewInterleave()" style="background: #6b7280; width: auto;">
+                        👁️ Vista previa del orden
+                    </button>
+                    <button id="interleaveBtn" class="btn" disabled onclick="interleavePDFs()" style="width: auto;">
+                        📑 Intercalar PDF
+                    </button>
+                </div>
+                <p class="logs" id="interleaveLogs">Cargue el PDF de origen y el PDF a intercalar.</p>
+
+                <div id="interleavePreview" class="preview-box">
+                    <h3 style="margin-top: 0; font-size: 1.1rem; color: var(--text-main);">Orden del PDF resultante:</h3>
+                    <div id="interleavePreviewText" style="font-size: 0.9rem; max-height: 220px; overflow-y: auto; line-height: 1.6;"></div>
+                </div>
+
+                <div id="interleaveResult" class="result-area">
+                    ¡Éxito! <a id="interleaveDownload" href="#" download>Descargar PDF Intercalado</a>
                 </div>
             </div>
 
@@ -547,7 +670,7 @@
             <div id="translate-en-es" class="tab-content full-height">
                 <div class="side-layout">
                     <div class="sidebar-controls">
-                        <h3>Ingles → Español</h3>
+                        <h3>Inglés → Español</h3>
 
                         <button class="btn" style="width:100%; margin-bottom:10px;"
                             onclick="document.getElementById('enEsFileInput').click()">
@@ -566,8 +689,8 @@
                         </div>
 
                         <div style="display:flex; gap:5px; margin-bottom: 10px;">
-                            <button class="btn" style="flex:1;" onclick="changeEnEsPage(-1)">⏮️ Pagina</button>
-                            <button class="btn" style="flex:1;" onclick="changeEnEsPage(1)">Pagina ⏭️</button>
+                            <button class="btn" style="flex:1;" onclick="changeEnEsPage(-1)">⏮️ Página</button>
+                            <button class="btn" style="flex:1;" onclick="changeEnEsPage(1)">Página ⏭️</button>
                         </div>
                         <div id="enEsPageLabel" style="font-size: 0.85rem; color: var(--text-muted);">1 / 1</div>
 
@@ -579,7 +702,7 @@
 
                         <hr>
 
-                        <label><b>Parrafos</b></label>
+                        <label><b>Párrafos</b></label>
                         <div id="enEsParaList" class="para-list"></div>
                         <div class="translation-actions" style="margin-top: 8px;">
                             <button class="btn" onclick="prevEnEsParagraph()" style="flex:1;">⬆️ Anterior</button>
@@ -591,7 +714,7 @@
                         <label><b>Texto original</b></label>
                         <div id="enEsSourceText" class="translation-box"></div>
 
-                        <label style="margin-top: 10px;"><b>Traduccion</b></label>
+                        <label style="margin-top: 10px;"><b>Traducción</b></label>
                         <div id="enEsTranslationText" class="translation-box"></div>
                         <div class="translation-actions" style="margin-top: 8px;">
                             <button class="btn" onclick="playEnEsAudio()" style="flex:1;">🔊 Pronunciar</button>
@@ -615,7 +738,7 @@
             <div id="translate-es-en" class="tab-content full-height">
                 <div class="side-layout">
                     <div class="sidebar-controls">
-                        <h3>Español → Ingles</h3>
+                        <h3>Español → Inglés</h3>
 
                         <button class="btn" style="width:100%; margin-bottom:10px;"
                             onclick="document.getElementById('esEnFileInput').click()">
@@ -634,8 +757,8 @@
                         </div>
 
                         <div style="display:flex; gap:5px; margin-bottom: 10px;">
-                            <button class="btn" style="flex:1;" onclick="changeEsEnPage(-1)">⏮️ Pagina</button>
-                            <button class="btn" style="flex:1;" onclick="changeEsEnPage(1)">Pagina ⏭️</button>
+                            <button class="btn" style="flex:1;" onclick="changeEsEnPage(-1)">⏮️ Página</button>
+                            <button class="btn" style="flex:1;" onclick="changeEsEnPage(1)">Página ⏭️</button>
                         </div>
                         <div id="esEnPageLabel" style="font-size: 0.85rem; color: var(--text-muted);">1 / 1</div>
 
@@ -647,7 +770,7 @@
 
                         <hr>
 
-                        <label><b>Parrafos</b></label>
+                        <label><b>Párrafos</b></label>
                         <div id="esEnParaList" class="para-list"></div>
                         <div class="translation-actions" style="margin-top: 8px;">
                             <button class="btn" onclick="prevEsEnParagraph()" style="flex:1;">⬆️ Anterior</button>
@@ -659,7 +782,7 @@
                         <label><b>Texto original</b></label>
                         <div id="esEnSourceText" class="translation-box"></div>
 
-                        <label style="margin-top: 10px;"><b>Traduccion</b></label>
+                        <label style="margin-top: 10px;"><b>Traducción</b></label>
                         <div id="esEnTranslationText" class="translation-box"></div>
                         <div class="translation-actions" style="margin-top: 8px;">
                             <button class="btn" onclick="playEsEnAudio()" style="flex:1;">🔊 Pronunciar</button>
@@ -891,7 +1014,33 @@
                 </div>
 
                 <div class="form-group">
-                    <label>3. Opciones de narración</label>
+                    <label>3. Narrador 🎙️</label>
+                    <div class="row" style="flex-wrap: wrap;">
+                        <div class="col" style="min-width: 220px;">
+                            <label for="manimVoice" style="font-weight: normal;">Voz del narrador</label>
+                            <select id="manimVoice" class="form-control" onchange="onManimVoiceChange()"></select>
+                        </div>
+                        <div class="col" style="min-width: 150px;">
+                            <label for="manimRate" style="font-weight: normal;">Velocidad: <span id="manimRateLabel">-5%</span></label>
+                            <input type="range" id="manimRate" min="-25" max="15" step="5" value="-5" oninput="updateManimVoiceLabels()">
+                        </div>
+                        <div class="col" style="min-width: 150px;">
+                            <label for="manimPitch" style="font-weight: normal;">Tono: <span id="manimPitchLabel">+0Hz</span></label>
+                            <input type="range" id="manimPitch" min="-10" max="10" step="2" value="0" oninput="updateManimVoiceLabels()">
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:8px; margin-top: 8px; flex-wrap: wrap;">
+                        <button class="btn" onclick="previewManimNarrator()" style="width:auto; background:#0f766e; color:white;">🔊 Probar narrador</button>
+                        <button class="btn" onclick="stopManimPreview()" style="width:auto; background:#6b7280;">⏹️ Detener</button>
+                    </div>
+                    <small id="manimVoiceInfo" style="color: var(--text-muted); display: block; margin-top: 6px;"></small>
+                    <small style="color: var(--text-muted); display: block; margin-top: 4px;">
+                        Un ritmo un poco más lento (-5 % a -10 %) suena más natural para explicar. El narrador elegido también se usa en el Lector, el Traductor y el Lector Vocabulario.
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label>4. Opciones de narración</label>
                     <div style="display: flex; gap: 15px; flex-wrap: wrap;">
                         <label style="display:flex; align-items:center; cursor:pointer; width: auto;">
                             <input type="checkbox" id="manimAutoDetectChapters" checked style="width:auto; margin-right:10px;">
@@ -933,7 +1082,8 @@
                         El ZIP descargable incluye:
                     </p>
                     <ul style="font-size: 0.9rem; color: var(--text-muted); margin: 0; padding-left: 20px;">
-                        <li>Archivos <code>Escena_XXX_narracion.txt</code> con el texto listo para TTS (voz es-MX-JorgeNeural)</li>
+                        <li>Archivos <code>Escena_XXX_narracion.txt</code> con el texto limpio y en párrafos, listo para TTS con el narrador elegido (por defecto Jorge, México)</li>
+                        <li>Script <code>generar_audio.sh</code> que crea el MP3 y los subtítulos <code>.srt</code> de cada escena</li>
                         <li>Templates <code>Escena_XXX.py</code> con la paleta de colores y estructura del skill</li>
                         <li>Script <code>merge_video.py</code> para sincronizar audio y video con setpts</li>
                         <li>Instrucciones de uso</li>
@@ -1162,6 +1312,7 @@
     <script src="JS/tabs/extract.js" defer></script>
     <script src="JS/tabs/extract-sequence.js" defer></script>
     <script src="JS/tabs/merge-sequence.js" defer></script>
+    <script src="JS/tabs/interleave.js" defer></script>
     <script src="JS/tabs/search.js" defer></script>
     <script src="JS/tabs/chapters.js" defer></script>
     <script src="JS/tabs/unlock.js" defer></script>

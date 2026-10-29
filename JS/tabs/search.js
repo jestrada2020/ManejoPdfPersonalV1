@@ -55,7 +55,7 @@ async function searchAndExtract() {
         pdfJsDoc.destroy();
 
         if (matchingPages.length === 0) {
-            logs.textContent = "No se encontraron coinciciencias.";
+            logs.textContent = "No se encontraron coincidencias.";
             showToast('No encontrado.', 'info');
         } else {
             searchResultData = {
@@ -84,7 +84,7 @@ function displaySearchResults(matchingPages) {
 
     matchingPages.forEach((pageData, idx) => {
         const itemDiv = document.createElement('div');
-        itemDiv.style.cssText = 'padding: 10px; margin-bottom: 8px; background: white; border: 1px solid var(--border); border-radius: 4px;';
+        itemDiv.style.cssText = 'padding: 10px; margin-bottom: 8px; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border); border-radius: 4px;';
         itemDiv.innerHTML = `
             <label style="display: flex; align-items: start; cursor: pointer; gap: 10px;">
                 <input type="checkbox" id="searchPage${idx}" 
@@ -94,7 +94,7 @@ function displaySearchResults(matchingPages) {
                 <div style="flex: 1;">
                     <strong>Página ${pageData.pageNum}</strong>
                     <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">
-                        ...${pageData.context}...
+                        ...${escapeHtml(pageData.context)}...
                     </div>
                 </div>
             </label>
@@ -212,12 +212,12 @@ async function extractPagesAsImages(bytes, password, pageIndices, outputName, lo
         const imgBytes = await response.arrayBuffer();
         const jpegImage = await newPdf.embedJpg(imgBytes);
 
-        const newPage = newPdf.addPage([viewport.width, viewport.height]);
+        const newPage = newPdf.addPage([viewport.width / scale, viewport.height / scale]) // tamaño real; la imagen se renderiza a scalex para nitidez;
         newPage.drawImage(jpegImage, {
             x: 0,
             y: 0,
-            width: viewport.width,
-            height: viewport.height,
+            width: viewport.width / scale,
+            height: viewport.height / scale,
         });
 
         page.cleanup();

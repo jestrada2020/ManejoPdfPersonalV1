@@ -18,14 +18,19 @@ function renderMergeList() {
         const li = document.createElement('li');
         li.innerHTML = `
             <div class="file-info">
-                <span class="file-name">${item.file.name}</span>
+                <span class="file-name"></span>
                 <div class="file-password">
-                    <input type="password" placeholder="Contraseña (opcional)" value="${item.password}"
-                        oninput="updateMergePassword(${index}, this.value)">
+                    <input type="password" placeholder="Contraseña (opcional)">
                 </div>
             </div>
-            <button class="btn-remove" onclick="removeMergeFile(${index})">Eliminar</button>
+            <button class="btn-remove">Eliminar</button>
         `;
+        // Nombre y contraseña como texto (no HTML): un nombre con < o " no rompe la lista
+        li.querySelector('.file-name').textContent = item.file.name;
+        const pass = li.querySelector('input');
+        pass.value = item.password;
+        pass.addEventListener('input', () => updateMergePassword(index, pass.value));
+        li.querySelector('.btn-remove').addEventListener('click', () => removeMergeFile(index));
         list.appendChild(li);
     });
 }
@@ -69,7 +74,7 @@ async function mergePDFs() {
             try {
                 pdfDoc = await loadPdfWithPasswordFallback(bytes, item.password);
             } catch (e) {
-                throw new Error(`Fallo al abrir ${item.file.name}. ¿Requiere contraseña?`);
+                throw new Error(`Fallo al abrir ${item.file.name}: ${e.message}`);
             }
 
             const copiedPages = await newPdf.copyPages(pdfDoc, pdfDoc.getPageIndices());

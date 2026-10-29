@@ -248,7 +248,8 @@ async function savePodcastPDF() {
 
         const fileSpecDict = pdfDoc.context.obj({
             Type: 'Filespec',
-            F: 'podcast_recording.webm',
+            F: PDFLib.PDFString.of('podcast_recording.webm'),
+            UF: PDFLib.PDFHexString.fromText('podcast_recording.webm'),
             EF: { F: audioRef },
         });
 
@@ -264,13 +265,19 @@ async function savePodcastPDF() {
             Rect: [pdfX, pdfY - 20, pdfX + 20, pdfY],
             FS: fileSpecDict,
             Name: 'PushPin',
-            T: 'Podcast Grabado',
-            Contents: 'Haz clic para escuchar el podcast grabado.',
+            T: PDFLib.PDFHexString.fromText('Podcast Grabado'),
+            Contents: PDFLib.PDFHexString.fromText('Haz clic para escuchar el podcast grabado.'),
             C: [1, 0, 0]
         });
 
         const annotRef = pdfDoc.context.register(annotInfo);
-        page.node.set(PDFLib.PDFName.of('Annots'), pdfDoc.context.obj([annotRef]));
+        // Añadir a las anotaciones existentes en lugar de reemplazarlas (no borrar enlaces previos)
+        let annots = page.node.Annots();
+        if (!annots) {
+            annots = pdfDoc.context.obj([]);
+            page.node.set(PDFLib.PDFName.of('Annots'), annots);
+        }
+        annots.push(annotRef);
 
         page.drawCircle({
             x: pdfX + 10,

@@ -160,9 +160,8 @@ async function generateTTSAudio() {
         utterance.lang = lang === 'es' ? 'es-MX' : lang === 'en' ? 'en-US' : lang;
         utterance.rate = 0.95;
 
-        const voices = window.speechSynthesis.getVoices();
-        const preferred = voices.find(v => v.lang.includes(lang) && (v.name.includes('Google') || v.name.includes('Natural'))) || voices.find(v => v.lang.includes(lang));
-        if (preferred) utterance.voice = preferred;
+        const preferred = pickBrowserVoice(lang);
+        if (preferred) { utterance.voice = preferred; utterance.lang = preferred.lang; }
 
         // Como no tenemos blob, no podemos adjuntar directamente
         // Pero permitimos pre-escucha y sugerimos alternativas
@@ -240,7 +239,8 @@ async function saveTTSPodcastPDF() {
 
         const fileSpecDict = pdfDoc.context.obj({
             Type: 'Filespec',
-            F: 'podcast_tts.mp3',
+            F: PDFLib.PDFString.of('podcast_tts.mp3'),
+            UF: PDFLib.PDFHexString.fromText('podcast_tts.mp3'),
             EF: { F: audioRef },
         });
 
@@ -256,13 +256,19 @@ async function saveTTSPodcastPDF() {
             Rect: [pdfX, pdfY - 20, pdfX + 20, pdfY],
             FS: fileSpecDict,
             Name: 'PushPin',
-            T: 'Podcast TTS',
-            Contents: 'Haz clic para escuchar el podcast generado.',
+            T: PDFLib.PDFHexString.fromText('Podcast TTS'),
+            Contents: PDFLib.PDFHexString.fromText('Haz clic para escuchar el podcast generado.'),
             C: [0, 0, 1]
         });
 
         const annotRef = pdfDoc.context.register(annotInfo);
-        page.node.set(PDFLib.PDFName.of('Annots'), pdfDoc.context.obj([annotRef]));
+        // Añadir a las anotaciones existentes en lugar de reemplazarlas (no borrar enlaces previos)
+        let annots = page.node.Annots();
+        if (!annots) {
+            annots = pdfDoc.context.obj([]);
+            page.node.set(PDFLib.PDFName.of('Annots'), annots);
+        }
+        annots.push(annotRef);
 
         page.drawCircle({
             x: pdfX + 10,

@@ -48,12 +48,14 @@ async function detectChapters() {
             const pageText = textContent.items.map(item => item.str).join(' ');
 
             for (const pattern of patternList) {
-                const normalizedPattern = normalizeText(pattern);
+                // Escapar símbolos especiales (+, (, ., etc.) para que el patrón se busque literalmente
+                const normalizedPattern = normalizeText(pattern).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                 const normalizedText = normalizeText(pageText);
 
                 let regex;
                 if (useNumbers) {
-                    regex = new RegExp(normalizedPattern + '\\s*' + numberPatterns.source, 'gi');
+                    // \\b final: evita que "Capítulo Introducción" cuente como "Capítulo I"
+                    regex = new RegExp(normalizedPattern + '\\s*' + numberPatterns.source + '\\b', 'gi');
                 } else {
                     regex = new RegExp(normalizedPattern, 'gi');
                 }
@@ -135,7 +137,7 @@ function displayChapters(chapters) {
 
     chapters.forEach((chapter, idx) => {
         const itemDiv = document.createElement('div');
-        itemDiv.style.cssText = 'padding: 12px; margin-bottom: 10px; background: white; border: 1px solid var(--border); border-radius: 4px;';
+        itemDiv.style.cssText = 'padding: 12px; margin-bottom: 10px; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border); border-radius: 4px;';
 
         const pageCount = chapter.endPage - chapter.startPage + 1;
 
@@ -144,7 +146,7 @@ function displayChapters(chapters) {
                 <input type="checkbox" id="chapter${idx}" ${chapter.selected ? 'checked' : ''} onchange="toggleChapter(${idx})" style="margin-top: 3px;">
                 <div style="flex: 1;">
                     <div style="font-weight: 600; margin-bottom: 4px;">
-                        ${chapter.title || 'Capítulo ' + (idx + 1)}
+                        ${escapeHtml(chapter.title || 'Capítulo ' + (idx + 1))}
                     </div>
                     <div style="font-size: 0.85rem; color: var(--text-muted);">
                         Páginas ${chapter.startPage} - ${chapter.endPage} (${pageCount} página${pageCount > 1 ? 's' : ''})
@@ -254,8 +256,8 @@ async function extractAllChapters() {
             const linkDiv = document.createElement('div');
             linkDiv.style.cssText = 'margin-bottom: 8px;';
             linkDiv.innerHTML = `
-                <a href="${link.url}" download="${link.filename}" style="color: var(--primary); text-decoration: none; font-weight: 500;">
-                    📄 ${link.title || link.filename}
+                <a href="${link.url}" download="${escapeHtml(link.filename)}" style="color: var(--primary); text-decoration: none; font-weight: 500;">
+                    📄 ${escapeHtml(link.title || link.filename)}
                 </a>
             `;
             linksContainer.appendChild(linkDiv);
@@ -319,12 +321,12 @@ async function extractChapter(bytes, password, chapter, fileName, useRasterMode,
             const imgBytes = await response.arrayBuffer();
             const jpegImage = await newPdf.embedJpg(imgBytes);
 
-            const newPage = newPdf.addPage([viewport.width, viewport.height]);
+            const newPage = newPdf.addPage([viewport.width / scale, viewport.height / scale]) // tamaño real; la imagen se renderiza a scalex para nitidez;
             newPage.drawImage(jpegImage, {
                 x: 0,
                 y: 0,
-                width: viewport.width,
-                height: viewport.height,
+                width: viewport.width / scale,
+                height: viewport.height / scale,
             });
 
             page.cleanup();

@@ -344,12 +344,8 @@ function createTranslatorEngine(config) {
         utterance.rate = 0.95;
 
         // Try to find a good voice
-        const voices = window.speechSynthesis.getVoices();
-        const preferred = voices.find(v =>
-            v.lang.includes(config.targetLang) &&
-            (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Neural'))
-        ) || voices.find(v => v.lang.includes(config.targetLang));
-        if (preferred) utterance.voice = preferred;
+        const preferred = pickBrowserVoice(config.targetLang);
+        if (preferred) { utterance.voice = preferred; utterance.lang = preferred.lang; }
 
         utterance.onstart = () => {
             status.textContent = 'Reproduciendo...';

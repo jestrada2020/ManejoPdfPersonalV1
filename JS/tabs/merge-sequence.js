@@ -60,8 +60,8 @@ function removeMergeSeqRange(idx) {
     const newRanges = [];
     rows.forEach((r, i) => {
         r.dataset.index = i;
-        const startInput = r.querySelector('input[type="number"]:first-of-type');
-        const endInput = r.querySelector('input[type="number"]:nth-of-type(2)');
+        // Cada input numérico está en su propio div, así que :nth-of-type no sirve aquí
+        const [startInput, endInput] = r.querySelectorAll('input[type="number"]');
         const removeBtn = r.querySelector('button');
 
         if (startInput) {
@@ -178,12 +178,12 @@ async function mergeSequencePages() {
                     const imgBytes = await response.arrayBuffer();
                     const jpegImage = await newPdf.embedJpg(imgBytes);
 
-                    const newPage = newPdf.addPage([viewport.width, viewport.height]);
+                    const newPage = newPdf.addPage([viewport.width / scale, viewport.height / scale]) // tamaño real; la imagen se renderiza a scalex para nitidez;
                     newPage.drawImage(jpegImage, {
                         x: 0,
                         y: 0,
-                        width: viewport.width,
-                        height: viewport.height,
+                        width: viewport.width / scale,
+                        height: viewport.height / scale,
                     });
 
                     page.cleanup();

@@ -43,7 +43,7 @@ async function unlockPDF() {
         console.error("Unlock error:", error);
         logs.textContent = "Error: " + error.message;
 
-        if (!useRasterMode) {
+        if (!useRasterMode && !error.skipAdvancedRetry) {
             const useAdvanced = confirm(
                 "Error en el modo estándar: " + error.message +
                 "\n\n¿Desea intentar con el Modo Avanzado automáticamente?\n\n" +
@@ -75,58 +75,25 @@ async function unlockByStandardMethod(bytes, password, outputName, logs, resultA
     let strategy = '';
     let useSimpleSave = false;
 
-    if (!password || password.trim() === '') {
-        logs.textContent = "Estrategia 1: Intentando sin contraseña...";
-        try {
-            pdfDoc = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: false });
-            strategy = 'sin contraseña';
-            useSimpleSave = true;
-        } catch (e) {
-            console.log("Estrategia 1 falló:", e.message);
-        }
-    }
-
-    if (!pdfDoc && password) {
-        logs.textContent = "Estrategia 2: Usando contraseña proporcionada...";
-        try {
-            pdfDoc = await PDFLib.PDFDocument.load(bytes, { password: password, ignoreEncryption: false });
-            strategy = 'con contraseña';
-            useSimpleSave = false;
-        } catch (e) {
-            console.log("Estrategia 2 falló:", e.message);
-        }
-    }
-
-    if (!pdfDoc && !password) {
-        logs.textContent = "Estrategia 3: Intentando ignorar encriptación...";
-        try {
-            pdfDoc = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true });
-            strategy = 'ignorando encriptación';
-            useSimpleSave = false;
-        } catch (e) {
-            console.log("Estrategia 3 falló:", e.message);
-        }
-    }
-
-    if (!pdfDoc && password) {
-        logs.textContent = "Estrategia 4: Combinando contraseña con ignoreEncryption...";
-        try {
-            pdfDoc = await PDFLib.PDFDocument.load(bytes, { password: password, ignoreEncryption: true });
-            strategy = 'contraseña + ignorar encriptación';
-            useSimpleSave = false;
-        } catch (e) {
-            console.log("Estrategia 4 falló:", e.message);
-        }
-    }
-
-    if (!pdfDoc) {
-        logs.textContent = "Estrategia 5: Intentando con contraseña vacía...";
-        try {
-            pdfDoc = await PDFLib.PDFDocument.load(bytes, { password: '', ignoreEncryption: true });
-            strategy = 'contraseña vacía';
-            useSimpleSave = false;
-        } catch (e) {
-            console.log("Estrategia 5 falló:", e.message);
+    logs.textContent = "Abriendo PDF con método estándar...";
+    try {
+        pdfDoc = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: false });
+        strategy = 'método estándar';
+        useSimpleSave = true;
+    } catch (e) {
+        console.log("Método estándar falló:", e.message);
+        if (/encrypted/i.test(e.message || '')) {
+            // pdf-lib no descifra: cargarlo "ignorando el cifrado" produce páginas en blanco o dañadas.
+            // pdf.js sí descifra (con la contraseña si la tiene), así que se usa el Modo Avanzado.
+            logs.textContent = "El PDF está cifrado: usando Modo Avanzado (renderización) automáticamente...";
+            showToast('PDF cifrado: se usará el Modo Avanzado', 'info', 4000);
+            try {
+                await unlockByRasterization(bytes, password, outputName, logs, resultArea);
+            } catch (rasterError) {
+                rasterError.skipAdvancedRetry = true; // ya se intentó el Modo Avanzado
+                throw rasterError;
+            }
+            return;
         }
     }
 
@@ -211,7 +178,17 @@ async function unlockByRasterization(bytes, password, outputName, logs, resultAr
         disableRange: false
     });
 
-    const pdfJsDoc = await loadingTask.promise;
+    let pdfJsDoc;
+    try {
+        pdfJsDoc = await loadingTask.promise;
+    } catch (e) {
+        if (e && e.name === 'PasswordException') {
+            throw new Error(password
+                ? 'Contraseña incorrecta. Verifíquela e intente de nuevo.'
+                : 'Este PDF pide contraseña para abrirse. Escríbala en el campo «Contraseña».');
+        }
+        throw e;
+    }
     const totalPages = pdfJsDoc.numPages;
 
     logs.textContent = `Renderizando ${totalPages} páginas como imágenes...`;
@@ -260,12 +237,12 @@ async function unlockByRasterization(bytes, password, outputName, logs, resultAr
             const imgBytes = await response.arrayBuffer();
 
             const jpegImage = await newPdf.embedJpg(imgBytes);
-            const newPage = newPdf.addPage([viewport.width, viewport.height]);
+            const newPage = newPdf.addPage([viewport.width / SCALE, viewport.height / SCALE]) // tamaño real; la imagen se renderiza a SCALEx para nitidez;
             newPage.drawImage(jpegImage, {
                 x: 0,
                 y: 0,
-                width: viewport.width,
-                height: viewport.height,
+                width: viewport.width / SCALE,
+                height: viewport.height / SCALE,
             });
 
             page.cleanup();

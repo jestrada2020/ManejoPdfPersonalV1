@@ -68,9 +68,8 @@ function removeExtractSeqRange(idx) {
     const newRanges = [];
     rows.forEach((r, i) => {
         r.dataset.index = i;
-        const oldIdx = parseInt(r.dataset.index);
-        const startInput = r.querySelector('input[type="number"]:first-of-type');
-        const endInput = r.querySelector('input[type="number"]:nth-of-type(2)');
+        // Cada input numérico está en su propio div, así que :nth-of-type no sirve aquí
+        const [startInput, endInput] = r.querySelectorAll('input[type="number"]');
         const nameInput = r.querySelector('input[type="text"]');
         const removeBtn = r.querySelector('button');
 
@@ -190,13 +189,13 @@ function displayExtractSeqRanges(totalPages) {
         const displayName = r.name ? r.name + '.pdf' : defaultName;
 
         const itemDiv = document.createElement('div');
-        itemDiv.style.cssText = 'padding: 12px; margin-bottom: 10px; background: white; border: 1px solid var(--border); border-radius: 4px;';
+        itemDiv.style.cssText = 'padding: 12px; margin-bottom: 10px; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border); border-radius: 4px;';
 
         itemDiv.innerHTML = `
             <div style="display: flex; align-items: center; gap: 10px;">
                 <div style="flex: 1;">
                     <div style="font-weight: 600; margin-bottom: 4px;">
-                        ${displayName}
+                        ${escapeHtml(displayName)}
                     </div>
                     <div style="font-size: 0.85rem; color: var(--text-muted);">
                         Páginas ${r.start} - ${r.end} (${pageCount} página${pageCount > 1 ? 's' : ''})
@@ -300,8 +299,8 @@ async function extractSeqConfirmAll() {
             const linkDiv = document.createElement('div');
             linkDiv.style.cssText = 'margin-bottom: 8px;';
             linkDiv.innerHTML = `
-                <a href="${link.url}" download="${link.filename}" style="color: var(--primary); text-decoration: none; font-weight: 500;">
-                    📄 ${link.title}
+                <a href="${link.url}" download="${escapeHtml(link.filename)}" style="color: var(--primary); text-decoration: none; font-weight: 500;">
+                    📄 ${escapeHtml(link.title)}
                 </a>
             `;
             linksContainer.appendChild(linkDiv);
@@ -365,12 +364,12 @@ async function extractSeqRange(bytes, password, start, end, fileName, useRasterM
             const imgBytes = await response.arrayBuffer();
             const jpegImage = await newPdf.embedJpg(imgBytes);
 
-            const newPage = newPdf.addPage([viewport.width, viewport.height]);
+            const newPage = newPdf.addPage([viewport.width / scale, viewport.height / scale]) // tamaño real; la imagen se renderiza a scalex para nitidez;
             newPage.drawImage(jpegImage, {
                 x: 0,
                 y: 0,
-                width: viewport.width,
-                height: viewport.height,
+                width: viewport.width / scale,
+                height: viewport.height / scale,
             });
 
             page.cleanup();

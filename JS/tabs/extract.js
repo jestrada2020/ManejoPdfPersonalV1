@@ -27,7 +27,7 @@ async function extractPages() {
         const bytes = await readPdfBytes(file);
 
         if (useRasterize) {
-            const loadingTask = pdfjsLib.getDocument({ data: bytes, password: password });
+            const loadingTask = pdfjsLib.getDocument({ data: bytes, password: password || undefined });
             const pdfJsDoc = await loadingTask.promise;
             const totalPages = pdfJsDoc.numPages;
 
@@ -35,26 +35,36 @@ async function extractPages() {
 
             const newPdf = await PDFLib.PDFDocument.create();
 
+            const scale = 2;
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d', { alpha: false });
+
             for (let i = start; i <= end; i++) {
                 const page = await pdfJsDoc.getPage(i);
-                const scale = 2;
                 const viewport = page.getViewport({ scale: scale });
 
-                const canvas = document.createElement('canvas');
-                const context = canvas.getContext('2d');
                 canvas.height = viewport.height;
                 canvas.width = viewport.width;
+                context.fillStyle = '#ffffff';
+                context.fillRect(0, 0, canvas.width, canvas.height);
 
                 await page.render({ canvasContext: context, viewport: viewport }).promise;
 
-                const imgDataUrl = canvas.toDataURL('image/png');
+                // JPEG pesa mucho menos que PNG; la página conserva su tamaño real (se renderiza a 2x para nitidez)
+                const imgDataUrl = canvas.toDataURL('image/jpeg', 0.92);
                 const imgBytes = await fetch(imgDataUrl).then(res => res.arrayBuffer());
-                const pngImage = await newPdf.embedPng(imgBytes);
+                const jpgImage = await newPdf.embedJpg(imgBytes);
 
-                const newPage = newPdf.addPage([viewport.width / scale * 72 / 72, viewport.height / scale * 72 / 72]);
-                newPage.setSize(viewport.width, viewport.height);
-                newPage.drawImage(pngImage, { x: 0, y: 0, width: viewport.width, height: viewport.height });
+                const pageW = viewport.width / scale;
+                const pageH = viewport.height / scale;
+                const newPage = newPdf.addPage([pageW, pageH]);
+                newPage.drawImage(jpgImage, { x: 0, y: 0, width: pageW, height: pageH });
+                page.cleanup();
             }
+
+            canvas.width = 0;
+            canvas.height = 0;
+            pdfJsDoc.destroy();
 
             const pdfBytes = await newPdf.save();
             const blob = new Blob([pdfBytes], { type: 'application/pdf' });

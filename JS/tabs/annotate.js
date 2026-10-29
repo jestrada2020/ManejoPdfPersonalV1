@@ -584,7 +584,8 @@ async function saveAnnotations() {
                         Type: 'Annot', Subtype: 'Link',
                         Rect: [physX, physY, physX + physW, physY + physH],
                         Border: [0, 0, 0],
-                        A: { Type: 'Action', S: 'URI', URI: ann.url }
+                        // URI debe ser un string PDF (un string JS se convertiría en PDFName y el enlace no funcionaría)
+                        A: { Type: 'Action', S: 'URI', URI: PDFLib.PDFString.of(ann.url) }
                     })
                 );
 

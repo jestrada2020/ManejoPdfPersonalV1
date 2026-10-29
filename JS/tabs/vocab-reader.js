@@ -43,22 +43,16 @@ function isStopWord(word) {
 // ============================================================
 // VOICES
 // ============================================================
-function loadVoices() {
+function loadVocabVoices() {
     vocabState.voicesLoaded = window.speechSynthesis.getVoices().length > 0;
 }
-if (speechSynthesis.onvoiceschanged !== undefined) {
-    speechSynthesis.onvoiceschanged = loadVoices;
-}
-loadVoices();
+speechSynthesis.addEventListener('voiceschanged', loadVocabVoices);
+loadVocabVoices();
 
+// En español usa el narrador elegido (Jorge, México por defecto); en otros idiomas, la voz más natural
 function getPreferredVoice(lang) {
-    if (!vocabState.voicesLoaded) loadVoices();
-    const voices = window.speechSynthesis.getVoices();
-    const langLower = lang.toLowerCase();
-    return voices.find(v =>
-        v.lang.toLowerCase().startsWith(langLower) &&
-        (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Neural'))
-    ) || voices.find(v => v.lang.toLowerCase().startsWith(langLower));
+    if (!vocabState.voicesLoaded) loadVocabVoices();
+    return pickBrowserVoice(lang);
 }
 
 // ============================================================
