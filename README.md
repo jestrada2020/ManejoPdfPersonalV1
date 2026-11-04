@@ -15,6 +15,7 @@ Aplicación web completa para manipular archivos PDF directamente en el navegado
 ### Visualización y Anotación
 - **Anotar / Revisar**: Resalta, subraya, tacha, dibuja flechas, añade notas y texto.
 - **Añadir Videos / Audio**: Inserta enlaces de YouTube, audio y enlaces web como anotaciones clickeables.
+- **Recupear_Formato**: Cambia título, fecha y enunciados conservando fuente, negrita, alineación e imágenes; agrega notas u observaciones y cubre zonas (por ejemplo, texto dentro de una imagen). El texto anterior se borra del archivo y la pestaña avisa si el texto nuevo pisa otro contenido.
 
 ### Traducción y Lectura
 - **Traductor / Lector**: Visualizador de PDF con traducción por selección y lectura TTS (Text-to-Speech) del navegador.
@@ -83,6 +84,7 @@ La aplicación soporta **modo oscuro** (toggle en la esquina inferior derecha). 
 ├── CSS/styles.css
 ├── JS/
 │   ├── common.js           # Utilidades, toast, drag-drop, dark mode
+│   ├── fonts/carlito-data.js  # Fuente Carlito (compatible con Calibri, licencia OFL)
 │   └── tabs/
 │       ├── merge.js
 │       ├── extract.js
@@ -98,7 +100,8 @@ La aplicación soporta **modo oscuro** (toggle en la esquina inferior derecha). 
 │       ├── translate-es-en.js
 │       ├── podcast.js
 │       ├── tts-podcast.js
-│       └── manim-narrator.js    # Generador de proyectos Manim
+│       ├── manim-narrator.js    # Generador de proyectos Manim
+│       └── recover-format.js    # Recupear_Formato: editar texto conservando el formato
 ```
 
 ## 📄 Licencia

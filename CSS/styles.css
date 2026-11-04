@@ -1019,3 +1019,339 @@ textarea:focus {
         max-width: 100%;
     }
 }
+
+/* ==========================================
+   Recupear_Formato
+   ========================================== */
+.rf-layout {
+    display: flex;
+    gap: 16px;
+    height: calc(100vh - 60px);
+    min-height: 480px;
+}
+
+.rf-panel {
+    width: 300px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.rf-file {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    color: var(--text-main);
+    overflow-wrap: anywhere;
+}
+
+.rf-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px;
+    color: var(--text-main);
+}
+
+.rf-section label {
+    display: block;
+    font-weight: 600;
+    font-size: 0.85rem;
+    margin: 6px 0 4px;
+}
+
+.rf-section h4 {
+    margin: 0 0 8px;
+    font-size: 0.9rem;
+}
+
+.rf-section input[type="text"] {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+}
+
+.rf-grow {
+    flex: 1 0 200px;
+    display: flex;
+    flex-direction: column;
+    min-height: 200px;
+}
+
+.rf-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.rf-tools {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+
+.rf-hint {
+    display: block;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    line-height: 1.35;
+    margin: 4px 0 0;
+}
+
+.rf-warn {
+    color: #b45309;
+    font-size: 0.78rem;
+    line-height: 1.35;
+    margin-top: 4px;
+}
+
+body.dark .rf-warn {
+    color: #fbbf24;
+}
+
+.rf-mini {
+    padding: 5px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-card);
+    color: var(--text-main);
+    font-size: 0.85rem;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.rf-mini:hover:not(:disabled) {
+    border-color: var(--primary);
+}
+
+.rf-mini:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.rf-mini.active,
+.rf-mini.rf-primary {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+}
+
+.rf-list {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.rf-block-item {
+    text-align: left;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-main);
+    cursor: pointer;
+    font-size: 0.82rem;
+    line-height: 1.3;
+}
+
+.rf-block-item small {
+    display: block;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+}
+
+.rf-block-item:hover {
+    border-color: var(--primary);
+}
+
+.rf-block-item.rf-edited {
+    border-left: 3px solid var(--success);
+}
+
+.rf-changes {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+    font-size: 0.82rem;
+}
+
+.rf-change {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 6px;
+    overflow-wrap: anywhere;
+}
+
+.rf-viewer {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rf-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-main);
+    font-size: 0.85rem;
+}
+
+.rf-toolbar .rf-hint {
+    margin: 0 0 0 8px;
+}
+
+.rf-editbar {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 6px;
+}
+
+.rf-editbar select,
+.rf-editbar input[type="number"] {
+    width: auto;
+    margin: 0;
+    padding: 4px 6px;
+    font-size: 0.85rem;
+}
+
+.rf-editbar input[type="number"] {
+    width: 66px;
+}
+
+.rf-editbar input[type="color"] {
+    width: 32px;
+    height: 28px;
+    padding: 0;
+    margin: 0;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+}
+
+.rf-check {
+    align-items: center;
+    gap: 4px;
+    margin: 0;
+    font-size: 0.85rem;
+}
+
+.rf-check input {
+    width: auto;
+    margin: 0;
+}
+
+.rf-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    background: #6b7280;
+    border-radius: var(--radius);
+    padding: 16px;
+}
+
+.rf-stage {
+    position: relative;
+    margin: 0 auto;
+    background: #fff;
+    box-shadow: var(--shadow);
+}
+
+.rf-stage canvas {
+    display: block;
+}
+
+.rf-overlay {
+    position: absolute;
+    inset: 0;
+    user-select: none;
+    touch-action: none;
+}
+
+.rf-overlay[data-tool="note"],
+.rf-overlay[data-tool="cover"] {
+    cursor: crosshair;
+}
+
+.rf-overlay[data-tool="note"] .rf-hit,
+.rf-overlay[data-tool="cover"] .rf-hit {
+    pointer-events: none;
+}
+
+.rf-hit {
+    position: absolute;
+    border-radius: 2px;
+    cursor: text;
+}
+
+.rf-hit:hover {
+    background: rgba(79, 70, 229, 0.1);
+    outline: 1px solid rgba(79, 70, 229, 0.6);
+}
+
+.rf-hit.rf-edited {
+    outline: 1px dashed rgba(16, 185, 129, 0.8);
+}
+
+.rf-hit.rf-note {
+    outline: 1px dashed rgba(217, 119, 6, 0.8);
+}
+
+.rf-grip {
+    position: absolute;
+    right: -4px;
+    top: 0;
+    bottom: 0;
+    width: 8px;
+    cursor: ew-resize;
+}
+
+.rf-cover {
+    position: absolute;
+    outline: 1px dashed rgba(107, 114, 128, 0.9);
+    pointer-events: none;
+}
+
+.rf-editor {
+    position: absolute;
+    z-index: 5;
+    min-height: 1em;
+    outline: 2px solid var(--primary);
+    color: #000;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    cursor: text;
+    user-select: text;
+}
+
+.rf-editor sub,
+.rf-editor sup {
+    font-size: 65%;
+    line-height: 0;
+}
+
+@media (max-width: 900px) {
+    .rf-layout {
+        flex-direction: column;
+        height: auto;
+    }
+
+    .rf-panel {
+        width: 100%;
+    }
+
+    .rf-viewer {
+        height: 80vh;
+    }
+}

@@ -32,6 +32,7 @@
                 <button class="tab-btn" data-tab="tts-podcast" onclick="switchTab('tts-podcast')">Texto a Podcast</button>
                 <button class="tab-btn" data-tab="manim-narrator" onclick="switchTab('manim-narrator')">🎬 Narración de Documentos</button>
                 <button class="tab-btn" data-tab="vocab-reader" onclick="switchTab('vocab-reader')">📖 Lector Vocabulario</button>
+                <button class="tab-btn" data-tab="recuperar-formato" onclick="switchTab('recuperar-formato')">Recupear_Formato</button>
             </div>
         </aside>
 
@@ -982,6 +983,112 @@
                 </div>
             </div>
 
+            <!-- RECUPEAR_FORMATO TAB -->
+            <div id="recuperar-formato" class="tab-content">
+                <div id="rfStart">
+                    <div class="form-group upload-box">
+                        <label style="font-size: 1.1rem; margin-bottom: 10px; display:block;">Cambie título, fecha o enunciados, o agregue notas, sin perder el formato del PDF</label>
+                        <input type="file" id="rfFileInput" accept="application/pdf" style="display: none;"
+                            onchange="RecuperarFormato.load(this.files[0])">
+                        <button id="rfLoadBtn" class="btn center-btn" onclick="document.getElementById('rfFileInput').click()">📂 Cargar PDF</button>
+                    </div>
+                </div>
+
+                <div id="rfWorkspace" class="rf-layout" style="display: none;">
+                    <aside class="rf-panel">
+                        <div class="rf-file">
+                            <strong id="rfFileName"></strong>
+                            <button type="button" class="btn-remove" onclick="RecuperarFormato.reset()">Cambiar PDF</button>
+                        </div>
+                        <p id="rfNoText" class="rf-warn" style="display: none;">No se detectó texto editable (¿PDF escaneado?). Puede agregar notas y cubrir zonas.</p>
+
+                        <div class="rf-section">
+                            <label for="rfTitleInput">Título</label>
+                            <div class="rf-row">
+                                <input type="text" id="rfTitleInput">
+                                <button type="button" class="rf-mini" onclick="RecuperarFormato.applyTitle()">Aplicar</button>
+                            </div>
+                            <label for="rfDateInput">Fecha</label>
+                            <div class="rf-row">
+                                <input type="text" id="rfDateInput" placeholder="Ej: 4 de noviembre de 2026">
+                                <button type="button" class="rf-mini" onclick="RecuperarFormato.applyDate()">Aplicar</button>
+                            </div>
+                            <small id="rfDateHint" class="rf-hint"></small>
+                        </div>
+
+                        <div class="rf-section">
+                            <div class="rf-tools">
+                                <button type="button" id="rfTool-edit" class="rf-mini" onclick="RecuperarFormato.setTool('edit')">✏️ Editar texto</button>
+                                <button type="button" id="rfTool-note" class="rf-mini" onclick="RecuperarFormato.setTool('note')">📝 Agregar nota</button>
+                                <button type="button" id="rfTool-cover" class="rf-mini" onclick="RecuperarFormato.setTool('cover')">⬜ Cubrir zona</button>
+                            </div>
+                            <small id="rfToolHint" class="rf-hint"></small>
+                        </div>
+
+                        <div class="rf-section rf-grow">
+                            <h4>Textos del documento</h4>
+                            <div id="rfBlockList" class="rf-list"></div>
+                        </div>
+
+                        <div class="rf-section">
+                            <h4>Cambios</h4>
+                            <p id="rfChangesEmpty" class="rf-hint">Aún no hay cambios.</p>
+                            <div id="rfChanges" class="rf-changes"></div>
+                        </div>
+
+                        <div class="rf-section">
+                            <label for="rfOutputName">Nombre del archivo</label>
+                            <input type="text" id="rfOutputName">
+                            <button type="button" class="btn" style="margin-top: 8px;" onclick="RecuperarFormato.save()">💾 Guardar PDF</button>
+                        </div>
+                    </aside>
+
+                    <section class="rf-viewer">
+                        <div class="rf-toolbar">
+                            <button type="button" id="rfPrev" class="rf-mini" onclick="RecuperarFormato.goTo(-1)">◀</button>
+                            <span id="rfPageInfo"></span>
+                            <button type="button" id="rfNext" class="rf-mini" onclick="RecuperarFormato.goTo(1)">▶</button>
+                            <button type="button" class="rf-mini" onclick="RecuperarFormato.setZoom(1/1.15)">−</button>
+                            <span id="rfZoomInfo"></span>
+                            <button type="button" class="rf-mini" onclick="RecuperarFormato.setZoom(1.15)">+</button>
+                            <span id="rfStatus" class="rf-hint"></span>
+                        </div>
+                        <div id="rfEditBar" class="rf-toolbar rf-editbar" style="display: none;" onmousedown="if(!/SELECT|INPUT/.test(event.target.tagName))event.preventDefault()">
+                            <button type="button" class="rf-mini" title="Negrita" onclick="RecuperarFormato.edCommand('bold')"><b>N</b></button>
+                            <button type="button" class="rf-mini" title="Cursiva" onclick="RecuperarFormato.edCommand('italic')"><i>K</i></button>
+                            <button type="button" class="rf-mini" title="Subrayado" onclick="RecuperarFormato.edCommand('underline')"><u>S</u></button>
+                            <button type="button" class="rf-mini" title="Subíndice" onclick="RecuperarFormato.edCommand('subscript')">x₂</button>
+                            <button type="button" class="rf-mini" title="Superíndice" onclick="RecuperarFormato.edCommand('superscript')">x²</button>
+                            <select id="rfEdAlign" title="Alineación" onchange="RecuperarFormato.edStyle('align', this.value)">
+                                <option value="left">Izquierda</option>
+                                <option value="center">Centro</option>
+                                <option value="right">Derecha</option>
+                                <option value="justify">Justificado</option>
+                            </select>
+                            <select id="rfEdFont" title="Fuente de todo el bloque" onchange="RecuperarFormato.edStyle('font', this.value)">
+                                <option value="calibri">Calibri</option>
+                                <option value="times">Times</option>
+                                <option value="helvetica">Arial</option>
+                                <option value="courier">Courier</option>
+                            </select>
+                            <input type="number" id="rfEdSize" title="Tamaño de todo el bloque" min="4" max="96" step="0.5" onchange="RecuperarFormato.edStyle('size', this.value)">
+                            <input type="color" id="rfEdColor" title="Color de todo el bloque" onchange="RecuperarFormato.edStyle('color', this.value)">
+                            <label id="rfEdBoxWrap" class="rf-check"><input type="checkbox" id="rfEdBox" onchange="RecuperarFormato.edBox(this.checked)"> Recuadro</label>
+                            <button type="button" class="rf-mini rf-primary" onclick="RecuperarFormato.closeEditor(true)">Listo</button>
+                            <button type="button" class="rf-mini" onclick="RecuperarFormato.closeEditor(false)">Cancelar</button>
+                            <button type="button" id="rfEdDelete" class="rf-mini" onclick="RecuperarFormato.edDelete()">Restaurar original</button>
+                        </div>
+                        <div class="rf-scroll">
+                            <div id="rfStage" class="rf-stage">
+                                <canvas id="rfCanvas"></canvas>
+                                <div id="rfOverlay" class="rf-overlay"></div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+
             <!-- MANIM NARRATOR TAB -->
             <div id="manim-narrator" class="tab-content">
                 <div class="form-group upload-box">
@@ -1305,6 +1412,7 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.1.1/dist/tesseract.min.js" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
     <script src="JS/common.js" defer></script>
@@ -1326,6 +1434,7 @@
     <script src="JS/tabs/tts-podcast.js" defer></script>
     <script src="JS/tabs/manim-narrator.js" defer></script>
     <script src="JS/tabs/vocab-reader.js" defer></script>
+    <script src="JS/tabs/recover-format.js" defer></script>
 
     <!-- Toast Container -->
     <div id="toastContainer"></div>
