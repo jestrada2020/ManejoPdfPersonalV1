@@ -1280,13 +1280,138 @@ body.dark .rf-warn {
 }
 
 .rf-overlay[data-tool="note"],
-.rf-overlay[data-tool="cover"] {
+.rf-overlay[data-tool="cover"],
+.rf-overlay[data-tool="image"] {
     cursor: crosshair;
 }
 
 .rf-overlay[data-tool="note"] .rf-hit,
-.rf-overlay[data-tool="cover"] .rf-hit {
+.rf-overlay[data-tool="cover"] .rf-hit,
+.rf-overlay[data-tool="image"] .rf-hit {
     pointer-events: none;
+}
+
+.rf-hit.rf-image {
+    cursor: move;
+    outline: 1px dashed rgba(124, 58, 237, 0.8);
+}
+
+.rf-hit.rf-image.rf-flash {
+    outline: 3px solid rgba(124, 58, 237, 0.9);
+    background: rgba(124, 58, 237, 0.12);
+}
+
+.rf-grip.rf-grip-corner {
+    top: auto;
+    right: -5px;
+    bottom: -5px;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    background: rgba(124, 58, 237, 0.85);
+    cursor: nwse-resize;
+}
+
+.rf-section label.rf-img-opt {
+    margin-top: 6px;
+    font-size: 0.85rem;
+    font-weight: normal;
+}
+
+.rf-sign-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.rf-sign-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    width: min(680px, 94vw);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.rf-sign-box h4 {
+    margin: 0;
+}
+
+.rf-sign-pad {
+    position: relative;
+    height: 240px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: #ffffff;
+    overflow: hidden;
+}
+
+.rf-sign-pad canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    touch-action: none;
+    cursor: crosshair;
+}
+
+.rf-sign-line {
+    position: absolute;
+    left: 8%;
+    right: 8%;
+    bottom: 60px;
+    border-top: 1px dashed #9ca3af;
+    padding-top: 4px;
+    font-size: 0.75rem;
+    color: #9ca3af;
+    text-align: center;
+    pointer-events: none;
+}
+
+.rf-sign-controls {
+    flex-wrap: wrap;
+}
+
+.rf-sign-controls label.rf-check {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    margin: 0;
+    font-weight: normal;
+}
+
+.rf-sign-actions {
+    justify-content: flex-end;
+}
+
+.rf-img-pending {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 6px;
+}
+
+.rf-img-pending > div {
+    min-width: 0;
+}
+
+.rf-img-pending .rf-row {
+    flex-wrap: wrap;
+}
+
+.rf-img-pending img {
+    max-width: 90px;
+    max-height: 50px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    background: repeating-conic-gradient(#e5e7eb 0% 25%, #ffffff 0% 50%) 50% / 10px 10px;
 }
 
 .rf-hit {

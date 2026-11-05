@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Herramientas PDF Avanzadas</title>
-    <link rel="stylesheet" href="CSS/styles.css">
+    <link rel="stylesheet" href="CSS/styles.css?v=20261105b">
 </head>
 
 <body>
@@ -1021,8 +1021,23 @@
                                 <button type="button" id="rfTool-edit" class="rf-mini" onclick="RecuperarFormato.setTool('edit')">✏️ Editar texto</button>
                                 <button type="button" id="rfTool-note" class="rf-mini" onclick="RecuperarFormato.setTool('note')">📝 Agregar nota</button>
                                 <button type="button" id="rfTool-cover" class="rf-mini" onclick="RecuperarFormato.setTool('cover')">⬜ Cubrir zona</button>
+                                <button type="button" id="rfTool-image" class="rf-mini" onclick="RecuperarFormato.pickImage()">🖋️ Imagen / firma</button>
+                                <button type="button" id="rfTool-draw" class="rf-mini" onclick="RecuperarFormato.openSignPad()">✍️ Dibujar firma</button>
                             </div>
                             <small id="rfToolHint" class="rf-hint"></small>
+                            <input type="file" id="rfImageInput" accept="image/png,image/jpeg,image/webp,image/gif,image/bmp" style="display: none;"
+                                onchange="RecuperarFormato.loadImage(this.files[0]); this.value = '';">
+                            <label class="rf-check rf-img-opt"><input type="checkbox" id="rfImgTransparent" checked> Quitar fondo blanco (firmas escaneadas o fotos)</label>
+                            <div id="rfImgPending" class="rf-img-pending" style="display: none;">
+                                <img id="rfImgThumb" alt="Imagen lista para colocar">
+                                <div>
+                                    <small id="rfImgName" class="rf-hint"></small>
+                                    <div class="rf-row">
+                                        <button type="button" class="rf-mini" onclick="RecuperarFormato.setTool('image')" title="Luego haga clic en la página (sirve para firmar varias páginas)">Colocar otra vez</button>
+                                        <button type="button" class="rf-mini" onclick="document.getElementById('rfImageInput').click()">Cambiar imagen</button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="rf-section rf-grow">
@@ -1085,6 +1100,34 @@
                             </div>
                         </div>
                     </section>
+                </div>
+
+                <div id="rfSignModal" class="rf-sign-backdrop" style="display: none;">
+                    <div class="rf-sign-box" role="dialog" aria-modal="true" aria-labelledby="rfSignTitle">
+                        <h4 id="rfSignTitle">✍️ Dibuje su firma</h4>
+                        <small class="rf-hint">Use el mouse, el dedo o un lápiz digital. El fondo queda transparente.</small>
+                        <div class="rf-sign-pad">
+                            <canvas id="rfSignCanvas"></canvas>
+                            <div class="rf-sign-line">Firme sobre la línea</div>
+                        </div>
+                        <div class="rf-row rf-sign-controls">
+                            <label class="rf-check">Color
+                                <select id="rfSignColor" onchange="RecuperarFormato.signRedraw()">
+                                    <option value="#111111">Negro</option>
+                                    <option value="#1a3c9c">Azul</option>
+                                </select>
+                            </label>
+                            <label class="rf-check">Grosor
+                                <input type="range" id="rfSignWidth" min="1" max="6" step="0.5" value="2.5" oninput="RecuperarFormato.signRedraw()">
+                            </label>
+                            <button type="button" class="rf-mini" onclick="RecuperarFormato.signUndo()">↶ Deshacer</button>
+                            <button type="button" class="rf-mini" onclick="RecuperarFormato.signClear()">🗑️ Borrar</button>
+                        </div>
+                        <div class="rf-row rf-sign-actions">
+                            <button type="button" class="rf-mini" onclick="RecuperarFormato.closeSignPad(false)">Cancelar</button>
+                            <button type="button" class="rf-mini rf-primary" onclick="RecuperarFormato.closeSignPad(true)">Usar firma</button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -1434,7 +1477,7 @@
     <script src="JS/tabs/tts-podcast.js" defer></script>
     <script src="JS/tabs/manim-narrator.js" defer></script>
     <script src="JS/tabs/vocab-reader.js" defer></script>
-    <script src="JS/tabs/recover-format.js" defer></script>
+    <script src="JS/tabs/recover-format.js?v=20261105b" defer></script>
 
     <!-- Toast Container -->
     <div id="toastContainer"></div>

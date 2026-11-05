@@ -45,7 +45,8 @@
         preview: null, previewBytes: null,
         building: false, rebuild: false, idle: Promise.resolve(),
         renderTask: null, editor: null, stripCache: new Map(), warnings: new Map(),
-        titleBlock: null, dateRef: null, depsReady: null
+        titleBlock: null, dateRef: null, depsReady: null,
+        pendingImage: null
     };
     const $ = id => document.getElementById(id);
 
@@ -951,6 +952,15 @@
                 const color = e.color || await sampleBackground(info, { x0: e.x, y0: e.y, x1: e.x + e.w, y1: e.y + e.h });
                 rect(e.x, e.y, e.x + e.w, e.y + e.h, { color: hexToRgb01(color) });
             }
+            // Imágenes y firmas: encima de las zonas cubiertas, debajo del texto nuevo
+            for (const e of elems.filter(x => x.type === 'image')) {
+                const img = e.kind === 'jpg' ? await doc.embedJpg(e.bytes) : await doc.embedPng(e.bytes);
+                page.drawImage(img, { ...at(e.x, e.y + e.h), width: e.w, height: e.h, rotate: angle });
+                e.bbox = { x0: e.x, y0: e.y, x1: e.x + e.w, y1: e.y + e.h };
+                if (e.y + e.h > info.height + 0.5 || e.x + e.w > info.width + 0.5 || e.x < -0.5 || e.y < -0.5) {
+                    warnings.set(e.id, ['La imagen se sale de la hoja.']);
+                }
+            }
             for (const e of elems.filter(x => x.type === 'edit')) {
                 if (stripped.has(num)) continue;
                 const b = blockById(e.blockId);
@@ -960,7 +970,8 @@
                 }
                 warnings.set(e.id, ['En esta página no se pudo borrar el texto anterior: quedó tapado, pero aún se puede copiar o buscar.']);
             }
-            for (const e of elems.filter(x => x.type !== 'cover')) {
+            const textual = elems.filter(x => x.type === 'edit' || x.type === 'note');
+            for (const e of textual) {
                 const w = warnings.get(e.id) || [];
                 const original = e.type === 'edit' ? blockById(e.blockId).fontNames : [];
                 if (original.length) w.push(`La fuente original (${original.join(', ')}) se reemplazó por una parecida.`);
@@ -986,10 +997,11 @@
             }
             // 3. Avisar si el texto nuevo pisa otra cosa o se sale de la hoja
             const editedIds = new Set(elems.filter(x => x.type === 'edit').map(x => x.blockId));
-            for (const e of elems.filter(x => x.type !== 'cover')) {
+            for (const e of textual) {
                 const box = e.bbox, w = warnings.get(e.id) || [];
                 const hitsText = info.blocks.some(b => !editedIds.has(b.id) && overlap(box, b));
-                const hitsNew = elems.some(o => o !== e && o.type !== 'cover' && o.bbox && overlap(box, o.bbox));
+                // Una firma encima de un texto es lo normal: no se avisa
+                const hitsNew = textual.some(o => o !== e && o.bbox && overlap(box, o.bbox));
                 const hitsImage = info.images.some(im => overlap(box, im));
                 if (hitsText || hitsNew) w.push('El texto se cruza con otro texto de la página.');
                 if (hitsImage) w.push('El texto se cruza con una imagen de la página.');
@@ -1136,6 +1148,17 @@
                 grip.title = 'Arrastre para cambiar el ancho';
                 hit.appendChild(grip);
                 ov.appendChild(hit);
+            } else if (e.type === 'image') {
+                const hit = document.createElement('div');
+                hit.className = 'rf-hit rf-image';
+                hit.title = 'Imagen: arrastre para moverla; la esquina cambia el tamaño';
+                hit.dataset.elem = e.id;
+                place(hit, { x0: e.x, y0: e.y, x1: e.x + e.w, y1: e.y + e.h });
+                const grip = document.createElement('span');
+                grip.className = 'rf-grip rf-grip-corner';
+                grip.title = 'Arrastre para cambiar el tamaño';
+                hit.appendChild(grip);
+                ov.appendChild(hit);
             } else if (e.type === 'cover') {
                 const hit = document.createElement('div');
                 hit.className = 'rf-cover';
@@ -1170,8 +1193,8 @@
             const row = document.createElement('div');
             row.className = 'rf-change';
             const label = document.createElement('div');
-            const name = e.type === 'note' ? 'Nota' : e.type === 'cover' ? 'Zona cubierta' : blockById(e.blockId).kind;
-            const text = e.type === 'cover' ? '' : ': ' + runsText(e.runs).trim().slice(0, 50);
+            const name = e.type === 'note' ? 'Nota' : e.type === 'cover' ? 'Zona cubierta' : e.type === 'image' ? 'Imagen / firma' : blockById(e.blockId).kind;
+            const text = e.type === 'cover' ? '' : e.type === 'image' ? ` (${e.name})` : ': ' + runsText(e.runs).trim().slice(0, 50);
             label.textContent = `Pág. ${e.page} · ${name}${text}`;
             const x = document.createElement('button');
             x.type = 'button';
@@ -1204,8 +1227,9 @@
     function setTool(tool) {
         closeEditor(true);
         S.tool = tool;
-        ['edit', 'note', 'cover'].forEach(t => $('rfTool-' + t).classList.toggle('active', t === tool));
+        ['edit', 'note', 'cover', 'image'].forEach(t => $('rfTool-' + t).classList.toggle('active', t === tool));
         const hints = {
+            image: 'Haga clic en la página donde quiere la imagen o firma. Luego puede arrastrarla y cambiar su tamaño desde la esquina.',
             edit: 'Haga clic en un texto de la página para editarlo.',
             note: 'Haga clic en el lugar de la página donde quiere la nota.',
             cover: 'Arrastre sobre la zona que quiere cubrir (por ejemplo, texto dentro de una imagen). Solo la tapa: no la borra del archivo.'
@@ -1463,6 +1487,12 @@
             addNoteAt(pos.x, pos.y);
             return;
         }
+        if (S.tool === 'image') {
+            ev.preventDefault();
+            setTool('edit');
+            if (S.pendingImage) placeImageAt(pos.x, pos.y);
+            return;
+        }
         if (S.tool === 'cover') {
             ev.preventDefault();
             closeEditor(true);
@@ -1499,13 +1529,18 @@
         ev.preventDefault();
         closeEditor(true);
         const isGrip = target.classList.contains('rf-grip');
-        const startRect = { left: hit.offsetLeft, top: hit.offsetTop, width: hit.offsetWidth };
+        const isImage = hit.classList.contains('rf-image');
+        const startRect = { left: hit.offsetLeft, top: hit.offsetTop, width: hit.offsetWidth, height: hit.offsetHeight };
         let moved = false;
         const move = (m) => {
             const dx = (m.clientX - ev.clientX), dy = (m.clientY - ev.clientY);
             if (!moved && Math.hypot(dx, dy) < 4) return;
             moved = true;
-            if (isGrip) hit.style.width = Math.max(60, startRect.width + dx) + 'px';
+            if (isGrip && isImage) {
+                const wpx = Math.max(12, startRect.width + dx);
+                hit.style.width = wpx + 'px';
+                hit.style.height = wpx * startRect.height / startRect.width + 'px';
+            } else if (isGrip) hit.style.width = Math.max(60, startRect.width + dx) + 'px';
             else { hit.style.left = startRect.left + dx + 'px'; hit.style.top = startRect.top + dy + 'px'; }
         };
         const up = (u) => {
@@ -1515,11 +1550,16 @@
             const elem = hit.dataset.elem ? S.elems.find(e => e.id === parseInt(hit.dataset.elem, 10)) : null;
             const block = hit.dataset.block ? blockById(hit.dataset.block) : null;
             if (!moved) {
-                if (elem) openNote(elem, false);
+                if (elem && elem.type === 'image') setStatus('Imagen: arrástrela para moverla o use la esquina para cambiar el tamaño. Se quita en «Cambios».');
+                else if (elem) openNote(elem, false);
                 else if (block) openBlock(block);
                 return;
             }
-            if (elem && isGrip) elem.w = Math.max(60 / S.zoom, elem.w + dx);
+            if (elem && elem.type === 'image' && isGrip) {
+                const ratio = elem.h / elem.w;
+                elem.w = Math.max(12 / S.zoom, elem.w + dx);
+                elem.h = elem.w * ratio;
+            } else if (elem && isGrip) elem.w = Math.max(60 / S.zoom, elem.w + dx);
             else if (elem) { elem.x += dx; elem.y += dy; }
             else if (block) {
                 const e = elemForBlock(block.id);
@@ -1579,15 +1619,344 @@
         removeElem(id);
     }
 
+    // ---------- imágenes y firmas ----------
+    function readImageElement(blob) {
+        return new Promise((resolve, reject) => {
+            const url = URL.createObjectURL(blob);
+            const img = new Image();
+            img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+            img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('el archivo no es una imagen válida')); };
+            img.src = url;
+        });
+    }
+
+    // Deja transparente el papel. El fondo se estima por zonas (no un solo tono), así
+    // también funciona con fotos de una firma en papel gris o con sombra. Lo que es
+    // bastante más oscuro que su zona, o de color (tinta azul), se conserva.
+    function removeBackground(ctx, w, h) {
+        const d = ctx.getImageData(0, 0, w, h), p = d.data;
+        const B = Math.max(16, Math.round(Math.max(w, h) / 24));
+        const gw = Math.ceil(w / B), gh = Math.ceil(h / B);
+        const raw = new Float32Array(gw * gh), hist = new Uint32Array(256);
+        const step = Math.max(1, Math.round(B / 16));
+        for (let gy = 0; gy < gh; gy++) for (let gx = 0; gx < gw; gx++) {
+            hist.fill(0);
+            let n = 0;
+            for (let y = gy * B; y < Math.min(h, gy * B + B); y += step) for (let x = gx * B; x < Math.min(w, gx * B + B); x += step) {
+                const i = (y * w + x) * 4;
+                hist[Math.min(p[i], p[i + 1], p[i + 2])]++;
+                n++;
+            }
+            // Percentil 85: el papel domina aunque la zona tenga algo de tinta
+            let acc = 0, v = 0;
+            for (; v < 256; v++) { acc += hist[v]; if (acc >= n * 0.85) break; }
+            raw[gy * gw + gx] = v;
+        }
+        // Máximo con los vecinos: una zona cubierta de tinta toma el papel de al lado
+        const grid = new Float32Array(gw * gh);
+        for (let gy = 0; gy < gh; gy++) for (let gx = 0; gx < gw; gx++) {
+            let m = 0;
+            for (let yy = Math.max(0, gy - 1); yy <= Math.min(gh - 1, gy + 1); yy++)
+                for (let xx = Math.max(0, gx - 1); xx <= Math.min(gw - 1, gx + 1); xx++) m = Math.max(m, raw[yy * gw + xx]);
+            grid[gy * gw + gx] = m;
+        }
+        const sorted = Array.from(grid).sort((x, y) => x - y);
+        if (sorted[Math.floor(sorted.length / 2)] < 110) return false; // fondo oscuro: no es papel
+        const bgAt = (x, y) => {
+            const fx = Math.min(gw - 1, Math.max(0, x / B - 0.5)), fy = Math.min(gh - 1, Math.max(0, y / B - 0.5));
+            const x0 = Math.floor(fx), y0 = Math.floor(fy), x1 = Math.min(gw - 1, x0 + 1), y1 = Math.min(gh - 1, y0 + 1);
+            const tx = fx - x0, ty = fy - y0;
+            const top = grid[y0 * gw + x0] * (1 - tx) + grid[y0 * gw + x1] * tx;
+            const bot = grid[y1 * gw + x0] * (1 - tx) + grid[y1 * gw + x1] * tx;
+            return top * (1 - ty) + bot * ty;
+        };
+        for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+            const i = (y * w + x) * 4;
+            const mn = Math.min(p[i], p[i + 1], p[i + 2]), mx = Math.max(p[i], p[i + 1], p[i + 2]);
+            if (mx - mn > 60) continue;
+            const diff = bgAt(x, y) - mn;
+            const a = diff <= 12 ? 0 : diff >= 55 ? 1 : (diff - 12) / 43;
+            p[i + 3] = Math.round(p[i + 3] * a);
+        }
+        ctx.putImageData(d, 0, 0);
+        return true;
+    }
+
+    // Recorta los márgenes vacíos para que la firma ocupe todo su recuadro
+    function contentBounds(ctx, w, h, byAlpha) {
+        const p = ctx.getImageData(0, 0, w, h).data;
+        let ref = 255;
+        if (!byAlpha) {
+            const border = [];
+            for (let x = 0; x < w; x += Math.max(1, w >> 6)) border.push(p[x * 4], p[((h - 1) * w + x) * 4]);
+            for (let y = 0; y < h; y += Math.max(1, h >> 6)) border.push(p[y * w * 4], p[(y * w + w - 1) * 4]);
+            border.sort((x, y) => x - y);
+            ref = border[border.length >> 1];
+        }
+        let x0 = w, y0 = h, x1 = -1, y1 = -1;
+        for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+            const i = (y * w + x) * 4;
+            const ink = byAlpha ? p[i + 3] > 24
+                : Math.abs(Math.min(p[i], p[i + 1], p[i + 2]) - ref) > 40 || Math.max(p[i], p[i + 1], p[i + 2]) - Math.min(p[i], p[i + 1], p[i + 2]) > 60;
+            if (ink) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+        }
+        if (x1 < 0) return null;
+        const pad = Math.round(Math.max(x1 - x0, y1 - y0) * 0.03) + 2;
+        x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad);
+        x1 = Math.min(w - 1, x1 + pad); y1 = Math.min(h - 1, y1 + pad);
+        return { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
+    }
+
+    async function prepareImage(blob, transparent) {
+        const img = await readImageElement(blob);
+        const w0 = img.naturalWidth, h0 = img.naturalHeight;
+        if (!w0 || !h0) throw new Error('la imagen está vacía');
+        const MAX = 2000;
+        const k = Math.min(1, MAX / Math.max(w0, h0));
+        const w = Math.max(1, Math.round(w0 * k)), h = Math.max(1, Math.round(h0 * k));
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        ctx.drawImage(img, 0, 0, w, h);
+        // ¿La imagen ya trae transparencia (por ejemplo, una firma PNG sin fondo)?
+        const px = ctx.getImageData(0, 0, w, h).data;
+        let clear = 0;
+        for (let i = 3; i < px.length; i += 16) if (px[i] < 250) clear++;
+        const hasAlpha = clear > px.length / 16 * 0.02;
+        const cleaned = transparent && !hasAlpha ? removeBackground(ctx, w, h) : false;
+        const byAlpha = hasAlpha || cleaned;
+        const box = contentBounds(ctx, w, h, byAlpha);
+        if (!box) throw new Error(byAlpha ? 'no quedó nada visible en la imagen (¿es una firma muy clara? Pruebe sin «Quitar fondo blanco»)' : 'la imagen está en blanco');
+        let out = canvas;
+        if (box.w < w || box.h < h) {
+            out = document.createElement('canvas');
+            out.width = box.w;
+            out.height = box.h;
+            out.getContext('2d').drawImage(canvas, box.x, box.y, box.w, box.h, 0, 0, box.w, box.h);
+        }
+        const asJpg = !byAlpha && blob.type === 'image/jpeg';
+        const enc = await new Promise(res => out.toBlob(res, asJpg ? 'image/jpeg' : 'image/png', 0.92));
+        if (!enc) throw new Error('no se pudo convertir la imagen');
+        return { bytes: new Uint8Array(await enc.arrayBuffer()), kind: asJpg ? 'jpg' : 'png', w: out.width, h: out.height, cleaned, hasAlpha };
+    }
+
+    async function loadImage(blob) {
+        if (!blob) return;
+        if (!/^image\//.test(blob.type)) { showToast('Elija una imagen (PNG, JPG…)', 'warning'); return; }
+        try {
+            setStatus('Preparando imagen…');
+            const transparent = $('rfImgTransparent').checked;
+            const res = await prepareImage(blob, transparent);
+            setPendingImage(res, blob.name || 'imagen pegada', transparent && !res.cleaned && !res.hasAlpha ? 'no se detectó un fondo claro para quitar' : '');
+        } catch (e) {
+            console.error(e);
+            showToast('No se pudo usar la imagen: ' + e.message, 'error', 6000);
+            setStatus('');
+        }
+    }
+
+    function setPendingImage(res, name, note) {
+        if (S.pendingImage) URL.revokeObjectURL(S.pendingImage.url);
+        const url = URL.createObjectURL(new Blob([res.bytes], { type: res.kind === 'jpg' ? 'image/jpeg' : 'image/png' }));
+        S.pendingImage = { ...res, name, url };
+        $('rfImgThumb').src = url;
+        $('rfImgName').textContent = name + (note ? ' · ' + note : '');
+        $('rfImgPending').style.display = 'flex';
+        // Se coloca de inmediato para que se vea; luego se arrastra a su sitio
+        setTool('edit');
+        placeImageAt(null, null);
+    }
+
+    // ---------- firma dibujada a mano ----------
+    // Los trazos se guardan como puntos (en px CSS del lienzo) para poder deshacer,
+    // cambiar color o grosor y exportar a alta resolución con fondo transparente.
+    const SP = { strokes: [], drawing: null, bound: false };
+
+    function signCtx(canvas, scale) {
+        const ctx = canvas.getContext('2d');
+        ctx.setTransform(scale, 0, 0, scale, 0, 0);
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        return ctx;
+    }
+
+    function drawStrokes(ctx, strokes, color, width, ox = 0, oy = 0) {
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        strokes.forEach(st => {
+            const pts = st.map(p => ({ x: p.x - ox, y: p.y - oy, w: width * (p.p ? 0.6 + p.p * 0.8 : 1) }));
+            if (pts.length === 1) {
+                ctx.beginPath();
+                ctx.arc(pts[0].x, pts[0].y, pts[0].w / 2, 0, Math.PI * 2);
+                ctx.fill();
+                return;
+            }
+            // Curvas por los puntos medios: trazo suave aunque el mouse dé saltos
+            for (let i = 1; i < pts.length; i++) {
+                const a = pts[i - 1], b = pts[i];
+                const m0 = i === 1 ? a : { x: (pts[i - 2].x + a.x) / 2, y: (pts[i - 2].y + a.y) / 2 };
+                const m1 = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+                ctx.beginPath();
+                ctx.lineWidth = (a.w + b.w) / 2;
+                ctx.moveTo(m0.x, m0.y);
+                ctx.quadraticCurveTo(a.x, a.y, i === pts.length - 1 ? b.x : m1.x, i === pts.length - 1 ? b.y : m1.y);
+                ctx.stroke();
+            }
+        });
+    }
+
+    function signRedraw() {
+        const canvas = $('rfSignCanvas');
+        const dpr = window.devicePixelRatio || 1;
+        const w = canvas.clientWidth, h = canvas.clientHeight;
+        if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+            canvas.width = Math.round(w * dpr);
+            canvas.height = Math.round(h * dpr);
+        }
+        const ctx = signCtx(canvas, dpr);
+        ctx.clearRect(0, 0, w, h);
+        const strokes = SP.drawing ? [...SP.strokes, SP.drawing] : SP.strokes;
+        drawStrokes(ctx, strokes, $('rfSignColor').value, parseFloat($('rfSignWidth').value));
+    }
+
+    function bindSignPad() {
+        if (SP.bound) return;
+        SP.bound = true;
+        const canvas = $('rfSignCanvas');
+        const pt = (ev) => {
+            const r = canvas.getBoundingClientRect();
+            const p = ev.pointerType === 'pen' && ev.pressure > 0 ? ev.pressure : 0;
+            return { x: ev.clientX - r.left, y: ev.clientY - r.top, p };
+        };
+        canvas.addEventListener('pointerdown', (ev) => {
+            if (ev.button !== 0) return;
+            ev.preventDefault();
+            canvas.setPointerCapture(ev.pointerId);
+            SP.drawing = [pt(ev)];
+            signRedraw();
+        });
+        canvas.addEventListener('pointermove', (ev) => {
+            if (!SP.drawing) return;
+            const events = ev.getCoalescedEvents ? ev.getCoalescedEvents() : [ev];
+            (events.length ? events : [ev]).forEach(e2 => {
+                const p = pt(e2), last = SP.drawing[SP.drawing.length - 1];
+                if (Math.hypot(p.x - last.x, p.y - last.y) >= 1) SP.drawing.push(p);
+            });
+            signRedraw();
+        });
+        const end = () => {
+            if (!SP.drawing) return;
+            SP.strokes.push(SP.drawing);
+            SP.drawing = null;
+            signRedraw();
+        };
+        canvas.addEventListener('pointerup', end);
+        canvas.addEventListener('pointercancel', end);
+        window.addEventListener('resize', () => { if ($('rfSignModal').style.display !== 'none') signRedraw(); });
+        $('rfSignModal').addEventListener('keydown', (ev) => {
+            if (ev.key === 'Escape') { ev.preventDefault(); closeSignPad(false); }
+            if (ev.key === 'Enter') { ev.preventDefault(); closeSignPad(true); }
+            if (ev.key === 'z' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); signUndo(); }
+        });
+    }
+
+    function openSignPad() {
+        closeEditor(true);
+        bindSignPad();
+        SP.strokes = [];
+        SP.drawing = null;
+        const modal = $('rfSignModal');
+        modal.style.display = 'flex';
+        modal.tabIndex = -1;
+        modal.focus();
+        signRedraw();
+    }
+
+    function signUndo() { SP.strokes.pop(); signRedraw(); }
+    function signClear() { SP.strokes = []; signRedraw(); }
+
+    async function closeSignPad(use) {
+        if (!use) { $('rfSignModal').style.display = 'none'; return; }
+        const pts = SP.strokes.flat();
+        if (!pts.length) { showToast('Dibuje la firma antes de usarla', 'warning'); return; }
+        const width = parseFloat($('rfSignWidth').value);
+        const pad = width * 1.5 + 2;
+        const x0 = Math.min(...pts.map(p => p.x)) - pad, y0 = Math.min(...pts.map(p => p.y)) - pad;
+        const x1 = Math.max(...pts.map(p => p.x)) + pad, y1 = Math.max(...pts.map(p => p.y)) + pad;
+        // Se exporta a 4× para que la firma se vea nítida al imprimir
+        const K = 4, canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.ceil((x1 - x0) * K));
+        canvas.height = Math.max(1, Math.ceil((y1 - y0) * K));
+        drawStrokes(signCtx(canvas, K), SP.strokes, $('rfSignColor').value, width, x0, y0);
+        const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+        if (!blob) { showToast('No se pudo crear la imagen de la firma', 'error'); return; }
+        $('rfSignModal').style.display = 'none';
+        // w/h en px CSS: así la firma sale en la página del tamaño en que se dibujó (con tope)
+        setPendingImage({ bytes: new Uint8Array(await blob.arrayBuffer()), kind: 'png', w: canvas.width, h: canvas.height, scale: K, cleaned: true }, 'firma dibujada');
+    }
+
+    function pickImage() {
+        closeEditor(true);
+        $('rfImageInput').click();
+    }
+
+    // Lugar para la firma: sobre una línea «Firma: ____» de la página, si la hay
+    function signatureSpot(info, w, h) {
+        const cands = info.blocks.filter(b => /firma|firmado|signature/i.test(b.text));
+        const b = cands.find(x => /_{3,}/.test(x.text)) || cands[0];
+        if (b) {
+            const line = b.lines.find(l => /_{3,}/.test(l.text)) || b.lines.find(l => /firma/i.test(l.text)) || b.lines[0];
+            const under = line.text.search(/_{3,}/);
+            const cx = under > 0 ? line.x0 + (line.x1 - line.x0) * (under + (line.text.length - under) / 2) / line.text.length : (line.x0 + line.x1) / 2;
+            return { x: cx, y: line.y - h / 2 + h * 0.12 };
+        }
+        return { x: info.width / 2, y: info.height * 0.75 };
+    }
+
+    function placeImageAt(x, y) {
+        const img = S.pendingImage, info = pageOf(S.current);
+        if (!img || !info) return;
+        const auto = x === null;
+        // Tamaño inicial: el natural (a 96 ppp), sin pasar de 160 pt ni del 40 % de la hoja
+        let w = Math.min(img.w / (img.scale || 1) * 0.75, 160, info.width * 0.4);
+        let h = w * img.h / img.w;
+        if (h > info.height * 0.3) { h = info.height * 0.3; w = h * img.w / img.h; }
+        if (auto) ({ x, y } = signatureSpot(info, w, h));
+        const px = Math.max(0, Math.min(info.width - w, x - w / 2));
+        const py = Math.max(0, Math.min(info.height - h, y - h / 2));
+        const e = newElem({ type: 'image', page: S.current, x: px, y: py, w, h, bytes: img.bytes, kind: img.kind, name: img.name });
+        refreshLists();
+        setStatus('Imagen colocada en la página ' + S.current + '. Arrástrela a su sitio; la esquina cambia el tamaño.');
+        schedule().then(() => {
+            const hit = document.querySelector(`#rfOverlay .rf-image[data-elem="${e.id}"]`);
+            if (!hit) return;
+            hit.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' });
+            hit.classList.add('rf-flash');
+            setTimeout(() => hit.classList.remove('rf-flash'), 1600);
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         const ov = $('rfOverlay');
         if (!ov) return;
         ov.addEventListener('pointerdown', onPointerDown);
+        // Ctrl+V con una imagen copiada (por ejemplo, una firma) la deja lista para colocar
+        document.addEventListener('paste', (ev) => {
+            const tab = $('recuperar-formato');
+            if (!tab || !tab.classList.contains('active') || $('rfWorkspace').style.display === 'none' || S.editor) return;
+            const items = Array.from((ev.clipboardData && ev.clipboardData.items) || []);
+            const item = items.find(it => it.kind === 'file' && /^image\//.test(it.type));
+            if (!item) return;
+            ev.preventDefault();
+            loadImage(item.getAsFile());
+        });
     });
 
     window.RecuperarFormato = {
         load, reset, save, goTo: (delta) => goTo(S.current + delta), setZoom, setTool,
-        applyTitle, applyDate, edCommand, edStyle, edBox, edDelete,
+        applyTitle, applyDate, edCommand, edStyle, edBox, edDelete, pickImage, loadImage,
+        openSignPad, closeSignPad, signUndo, signClear, signRedraw,
         closeEditor,
         _state: S
     };

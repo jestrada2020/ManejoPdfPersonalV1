@@ -15,7 +15,7 @@ Aplicación web completa para manipular archivos PDF directamente en el navegado
 ### Visualización y Anotación
 - **Anotar / Revisar**: Resalta, subraya, tacha, dibuja flechas, añade notas y texto.
 - **Añadir Videos / Audio**: Inserta enlaces de YouTube, audio y enlaces web como anotaciones clickeables.
-- **Recupear_Formato**: Cambia título, fecha y enunciados conservando fuente, negrita, alineación e imágenes; agrega notas u observaciones y cubre zonas (por ejemplo, texto dentro de una imagen). El texto anterior se borra del archivo y la pestaña avisa si el texto nuevo pisa otro contenido.
+- **Recupear_Formato**: Cambia título, fecha y enunciados conservando fuente, negrita, alineación e imágenes; agrega notas u observaciones y cubre zonas (por ejemplo, texto dentro de una imagen). El texto anterior se borra del archivo y la pestaña avisa si el texto nuevo pisa otro contenido. Con **🖋️ Imagen / firma** se inserta una imagen o firma digital (archivo o Ctrl+V), con opción de quitar el fondo blanco; se arrastra para moverla y se cambia su tamaño desde la esquina. Con **✍️ Dibujar firma** se firma con el mouse, el dedo o un lápiz digital (color, grosor, deshacer) y la firma se inserta con fondo transparente.
 
 ### Traducción y Lectura
 - **Traductor / Lector**: Visualizador de PDF con traducción por selección y lectura TTS (Text-to-Speech) del navegador.
