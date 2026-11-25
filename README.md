@@ -56,6 +56,9 @@ Nueva funcionalidad que integra el pipeline de **[manim-narracion](skills/manim-
 ### 📘 Guía del usuario
 Pestaña final con un buscador («¿Qué quiere hacer?», Enter abre la herramienta), filtros por categoría, tarjetas con qué hace cada herramienta y sus pasos, flujos de trabajo recomendados, problemas frecuentes y atajos. Se abre desde cualquier pestaña con **F1** o el botón **❓**. Cada herramienta tiene enlace directo: `index.html#interleave`, `index.html#unlock`, etc.
 
+### 📄 Manual de usuario en PDF
+[`Manual_de_usuario.pdf`](Manual_de_usuario.pdf) (20 páginas, con índice y marcadores): introducción y requisitos, primeros pasos, las 18 herramientas por categoría (qué es, qué hace, cómo se usa, consejos y con qué combina), un capítulo dedicado a editar y firmar con «Recuperar formato» (con capturas), flujos de trabajo, problemas frecuentes y atajos. Su contenido sale de los mismos datos que la Guía del usuario.
+
 ## 🛠️ Tecnologías
 
 - [PDF-Lib](https://pdf-lib.js.org/) — Creación y modificación de PDFs.
@@ -89,6 +92,7 @@ La aplicación soporta **modo oscuro** (toggle en la esquina inferior derecha). 
 ```
 .
 ├── index.html
+├── Manual_de_usuario.pdf
 ├── CSS/styles.css
 ├── JS/
 │   ├── common.js           # Utilidades, toast, drag-drop, dark mode
