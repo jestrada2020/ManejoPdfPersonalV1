@@ -115,10 +115,10 @@ const GUIDE_TOOLS = [
         is: 'Un editor de texto de PDF que conserva el formato, con firma digital.',
         what: 'Cambia título, fecha y enunciados conservando la fuente y el formato; agrega notas, cubre zonas e inserta o dibuja firmas.',
         steps: ['Cargue el PDF.', 'Use «Editar texto», «Agregar nota», «Cubrir zona», «Imagen / firma» o «Dibujar firma» y haga clic en la página.', 'Revise la lista «Cambios» y pulse «Guardar PDF».'],
-        best: ['Use los campos «Título» y «Fecha» del panel para cambiarlos en un paso.', 'La pestaña avisa si el texto nuevo pisa otro contenido: revíselo antes de guardar.', 'Pegue una firma copiada con Ctrl+V; «Colocar otra vez» sirve para firmar varias páginas.'],
-        tip: 'Pegue una firma copiada con Ctrl+V; «Colocar otra vez» sirve para firmar varias páginas.',
+        best: ['Use los campos «Título» y «Fecha» del panel para cambiarlos en un paso.', 'La pestaña avisa si el texto nuevo pisa otro contenido: revíselo antes de guardar.', 'La firma se coloca sola sobre «Firma: ____» o sobre la línea de firma (______); si no hay, queda abajo al centro. Arrástrela a su sitio y cambie el tamaño desde la esquina.', 'Para ponerla en un punto exacto (u otra página), pulse «Colocar otra vez» y haga clic donde la quiera.', 'Pegue una firma copiada con Ctrl+V.', 'Los PDF con credenciales de contenido (C2PA, frecuentes en documentos hechos con IA) se normalizan al abrirlos; las credenciales no se conservan.', 'En PDF hechos con LaTeX las tildes se reconocen bien al editar («Triángulos»).'],
+        tip: 'La firma se coloca sola sobre la línea de firma; con «Colocar otra vez» y un clic la pone donde usted quiera.',
         related: ['annotate', 'extract-sequence'],
-        keys: 'editar cambiar texto fecha titulo firma firmar imagen tapar cubrir formato'
+        keys: 'editar cambiar texto fecha titulo firma firmar firma digital imagen tapar cubrir formato linea de firma colocar c2pa latex tildes'
     },
     {
         id: 'media', cat: 'audio', icon: '🎬', name: 'Añadir Videos / Audio',
@@ -219,7 +219,10 @@ const GUIDE_FAQ = [
     { q: 'El navegador se pone lento con un PDF muy grande.', a: 'Extraiga primero solo las páginas que necesita, o use «Modo Ahorro de Memoria» al desbloquear.', link: 'extract' },
     { q: '«Generar Audio» no funciona en Texto a Podcast.', a: 'El servidor de voz externo puede estar caído: la app usa la voz del navegador. Para adjuntar el audio, suba un MP3 propio.', link: 'tts-podcast' },
     { q: 'La voz suena robótica.', a: 'Elija otro narrador en Narración de Documentos («Probar narrador»). La elección se guarda y la usan también el Lector, el Traductor y el Lector Vocabulario. En Edge suenan más naturales.', link: 'manim-narrator' },
-    { q: 'Los dos PDF que intercalo tienen tamaños distintos.', a: 'Marque «Ajustar las hojas insertadas al tamaño de las páginas del origen».', link: 'interleave' }
+    { q: 'Los dos PDF que intercalo tienen tamaños distintos.', a: 'Marque «Ajustar las hojas insertadas al tamaño de las páginas del origen».', link: 'interleave' },
+    { q: 'La firma no aparece o los cambios no se ven en Recuperar formato.', a: 'Mire el mensaje en la barra superior del visor. Si la pestaña se comporta como una versión anterior, recargue con Ctrl+Shift+R. Los PDF con credenciales de contenido (C2PA) ya se normalizan solos al abrirlos.', link: 'recuperar-formato' },
+    { q: 'La firma quedó en un lugar equivocado.', a: 'Arrástrela a su sitio (la esquina cambia el tamaño), o pulse «Colocar otra vez» y haga clic donde la quiera; luego quite la anterior en «Cambios».', link: 'recuperar-formato' },
+    { q: 'Al editar un PDF hecho con LaTeX salen «?» en lugar de tildes.', a: 'Ya está corregido: las tildes se unen a su letra. Si aún lo ve, recargue la página con Ctrl+Shift+R.', link: 'recuperar-formato' }
 ];
 
 function guideToolById(id) {

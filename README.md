@@ -16,6 +16,11 @@ Aplicación web completa para manipular archivos PDF directamente en el navegado
 - **Anotar / Revisar**: Resalta, subraya, tacha, dibuja flechas, añade notas y texto.
 - **Añadir Videos / Audio**: Inserta enlaces de YouTube, audio y enlaces web como anotaciones clickeables.
 - **Recuperar formato**: Cambia título, fecha y enunciados conservando fuente, negrita, alineación e imágenes; agrega notas u observaciones y cubre zonas (por ejemplo, texto dentro de una imagen). El texto anterior se borra del archivo y la pestaña avisa si el texto nuevo pisa otro contenido. Con **🖋️ Imagen / firma** se inserta una imagen o firma digital (archivo o Ctrl+V), con opción de quitar el fondo blanco; se arrastra para moverla y se cambia su tamaño desde la esquina. Con **✍️ Dibujar firma** se firma con el mouse, el dedo o un lápiz digital (color, grosor, deshacer) y la firma se inserta con fondo transparente.
+  - **Colocación de la firma**: se ubica sola sobre una línea «Firma: ____», sobre una línea de firma (`______` o una raya dibujada, sin contar rayas de tablas o cuadrículas) o encima de la palabra «Firma» (completa: «firmante» no cuenta); si no hay ninguna, abajo al centro. Para ponerla en un punto exacto o en otra página: **Colocar otra vez** y clic en la página.
+  - **PDF con credenciales de contenido (C2PA)** —frecuentes en documentos generados con IA—: se normalizan al abrirlos (se copian las páginas a un documento limpio), porque de lo contrario el PDF guardado quedaba dañado y la firma no aparecía. Las credenciales no se conservan (dejarían de ser válidas al editar).
+  - **PDF de LaTeX**: los acentos que LaTeX guarda separados («Tri ́angulos») se unen a su letra («Triángulos»), así que al editar ya no salen «?».
+  - Si una vista previa falla, el motivo queda en la barra de estado del visor y los elementos se pueden seguir moviendo o quitando.
+  - Si tras actualizar la app el navegador muestra la versión anterior, recargue con **Ctrl+Shift+R**.
 
 ### Traducción y Lectura
 - **Traductor / Lector**: Visualizador de PDF con traducción por selección y lectura TTS (Text-to-Speech) del navegador.

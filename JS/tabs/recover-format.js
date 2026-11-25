@@ -455,6 +455,35 @@
         return { num, page, vp, width: vp.width, height: vp.height, rotate: vp.rotation, blocks, images, shapes, content, parsed, thin, rawText: tc.items.map(t => t.str || '').join(''), minX, rightEdge, bg: null };
     }
 
+    // LaTeX (fuentes Computer Modern) dibuja el acento como un glifo aparte, antes de la
+    // letra: «Tri ́angulos», «el  ́angulo». Se une a su letra («Triángulos», «el ángulo»);
+    // si no, al editar el acento suelto no existe en la fuente y sale «?».
+    const SPACING_ACCENT = { '´': '́', '˝': '̋', '˜': '̃', '¨': '̈', 'ˆ': '̂', 'ˇ': '̌', '˘': '̆', '˚': '̊' };
+    function joinAccents(runs) {
+        const chars = [];
+        runs.forEach(r => Array.from(r.text).forEach(c => chars.push({ c, r })));
+        const isLetter = (c) => !!c && /\p{L}/u.test(c);
+        let changed = false;
+        for (let i = 0; i < chars.length - 1; i++) {
+            const c = chars[i].c;
+            const combining = /[̀-ͯ]/.test(c);
+            const mark = combining ? c : SPACING_ACCENT[c];
+            const prev = chars[i - 1], prev2 = chars[i - 2];
+            // Un acento de espaciado solo se une si está suelto (después de un espacio)
+            if (!mark || !isLetter(chars[i + 1].c) || (!combining && !(prev && prev.c === ' '))) continue;
+            const letter = chars[i + 1].c.replace('ı', 'i').replace('ȷ', 'j');
+            chars[i + 1] = { c: (letter + mark).normalize('NFC'), r: chars[i + 1].r };
+            chars[i].c = '';
+            // El hueco que deja el acento: dentro de la palabra sobra; al inicio sobra uno de dos
+            if (prev && prev.c === ' ' && prev2 && (isLetter(prev2.c) || prev2.c === ' ')) prev.c = '';
+            changed = true;
+        }
+        if (!changed) return runs;
+        const out = [];
+        chars.forEach(ch => { if (ch.c) pushRun(out, { ...ch.r, text: ch.c }); });
+        return out;
+    }
+
     function finishBlock(b, idx, num, geo) {
         b.id = `${num}-${idx}`;
         b.page = num;
@@ -482,8 +511,8 @@
         const family = Object.keys(dominant).sort((x, y) => dominant[y] - dominant[x])[0] || 'calibri';
         runs.forEach(r => { if (!r.family) r.family = family; });
         b.family = family;
-        b.runs = runs;
-        b.text = runsText(runs).trim();
+        b.runs = joinAccents(runs);
+        b.text = runsText(b.runs).trim();
         b.fontNames = [...new Set(L.flatMap(l => l.items.filter(it => !it.font.exact).map(it => it.font.name)))];
 
         // Alineación
@@ -567,6 +596,20 @@
     }
 
     // ---------- carga ----------
+    async function normalizeGenerations(doc) {
+        const odd = doc.context.enumerateIndirectObjects().some(([ref]) => ref.generationNumber !== 0);
+        if (!odd) return null;
+        const clean = await PDFLib.PDFDocument.create({ updateMetadata: false });
+        const pages = await clean.copyPages(doc, doc.getPageIndices());
+        pages.forEach(p => clean.addPage(p));
+        try {
+            const title = doc.getTitle(), author = doc.getAuthor();
+            if (title) clean.setTitle(title);
+            if (author) clean.setAuthor(author);
+        } catch (e) { /* metadatos ilegibles: se omiten */ }
+        return clean.save({ useObjectStreams: false });
+    }
+
     async function load(file) {
         if (!file) return;
         setStatus('Abriendo PDF…');
@@ -574,13 +617,23 @@
         try {
             await ensureDeps();
             const buf = await readPdfBytes(file);
-            const bytes = new Uint8Array(buf);
+            let bytes = new Uint8Array(buf);
             let doc;
             try {
                 doc = await PDFLib.PDFDocument.load(bytes, { updateMetadata: false });
             } catch (e) {
                 if (/encrypt|password/i.test(e.message || '')) throw new Error('El PDF está protegido. Desbloquéelo primero en la pestaña «Desbloquear PDF».');
                 throw e;
+            }
+            // pdf-lib no guarda bien los objetos con número de generación distinto de 0
+            // (p. ej. PDF con «Content Credentials» C2PA añadidas en una actualización
+            // incremental): el PDF resultante queda roto y no se ven los cambios ni la firma.
+            // Se copian las páginas a un documento limpio antes de editar.
+            const normalized = await normalizeGenerations(doc);
+            if (normalized) {
+                bytes = normalized;
+                doc = await PDFLib.PDFDocument.load(bytes, { updateMetadata: false });
+                showToast('El PDF tenía una estructura poco común (p. ej. credenciales de contenido) y se normalizó para poder editarlo y firmarlo.', 'info', 6000);
             }
             if (S.src) S.src.destroy();
             if (S.preview) { S.preview.destroy(); S.preview = null; }
@@ -1047,7 +1100,10 @@
                 } catch (e) {
                     console.error(e);
                     showToast('No se pudo aplicar el cambio: ' + e.message, 'error', 6000);
-                    setStatus('Error al aplicar el último cambio.');
+                    setStatus('Error al aplicar el último cambio: ' + e.message);
+                    // Aunque la vista previa falle, los elementos se pueden seguir moviendo o quitando
+                    refreshLists();
+                    drawOverlay();
                 }
             }
             S.building = false;
@@ -1901,16 +1957,35 @@
         $('rfImageInput').click();
     }
 
-    // Lugar para la firma: sobre una línea «Firma: ____» de la página, si la hay
+    // Lugar para la firma, en este orden: una línea «Firma: ____»; una línea de firma
+    // (solo guiones bajos, o una raya dibujada que no subraya texto); encima de la
+    // palabra «Firma»; o el centro de la parte baja de la hoja. La palabra se busca
+    // completa: «firmante» o «firmar» en una nota no cuentan.
     function signatureSpot(info, w, h) {
-        const cands = info.blocks.filter(b => /firma|firmado|signature/i.test(b.text));
-        const b = cands.find(x => /_{3,}/.test(x.text)) || cands[0];
-        if (b) {
-            const line = b.lines.find(l => /_{3,}/.test(l.text)) || b.lines.find(l => /firma/i.test(l.text)) || b.lines[0];
-            const under = line.text.search(/_{3,}/);
-            const cx = under > 0 ? line.x0 + (line.x1 - line.x0) * (under + (line.text.length - under) / 2) / line.text.length : (line.x0 + line.x1) / 2;
-            return { x: cx, y: line.y - h / 2 + h * 0.12 };
+        const WORD = /\b(firma|firmado|signature)\b/i;
+        const lines = info.blocks.flatMap(b => b.lines);
+        const onLine = (x0, x1, y) => ({ x: (x0 + x1) / 2, y: y - h / 2 + h * 0.12 });
+        const labeled = lines.find(l => WORD.test(l.text) && /_{3,}/.test(l.text));
+        if (labeled) {
+            const under = labeled.text.search(/_{3,}/);
+            const k = (labeled.x1 - labeled.x0) / labeled.text.length;
+            const end = under + labeled.text.slice(under).match(/_+/)[0].length;
+            return onLine(labeled.x0 + under * k, labeled.x0 + end * k, labeled.y);
         }
+        const rules = lines.filter(l => /^\s*_{6,}\s*$/.test(l.text)).map(l => ({ x0: l.x0, x1: l.x1, y: l.y }));
+        const thin = info.thin || [];
+        thin.forEach(r => {
+            if (r.vx1 - r.vx0 < 90) return;
+            // Rayas paralelas cercanas: es una tabla o cuadrícula, no una línea de firma
+            if (thin.some(o => o !== r && Math.abs(o.vy0 - r.vy0) < 36 && Math.abs(o.vy0 - r.vy0) > 0.5 && o.vx0 < r.vx1 && o.vx1 > r.vx0)) return;
+            const underText = lines.some(l => Math.abs(r.vy0 - l.y) < l.size * 0.6 && r.vx0 < l.x1 && r.vx1 > l.x0 && /[^_\s]/.test(l.text));
+            if (!underText) rules.push({ x0: r.vx0, x1: r.vx1, y: (r.vy0 + r.vy1) / 2 });
+        });
+        rules.sort((a, b) => a.y - b.y);
+        const rule = rules.find(r => r.y > info.height * 0.4) || rules[0];
+        if (rule) return onLine(rule.x0, rule.x1, rule.y);
+        const word = lines.find(l => WORD.test(l.text));
+        if (word) return { x: (word.x0 + word.x1) / 2, y: word.y - word.size - h / 2 };
         return { x: info.width / 2, y: info.height * 0.75 };
     }
 
