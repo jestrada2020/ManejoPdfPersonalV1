@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Herramientas PDF Avanzadas</title>
-    <link rel="stylesheet" href="CSS/styles.css?v=20261105b">
+    <link rel="stylesheet" href="CSS/styles.css?v=20261125c">
 </head>
 
 <body>
@@ -32,7 +32,8 @@
                 <button class="tab-btn" data-tab="tts-podcast" onclick="switchTab('tts-podcast')">Texto a Podcast</button>
                 <button class="tab-btn" data-tab="manim-narrator" onclick="switchTab('manim-narrator')">🎬 Narración de Documentos</button>
                 <button class="tab-btn" data-tab="vocab-reader" onclick="switchTab('vocab-reader')">📖 Lector Vocabulario</button>
-                <button class="tab-btn" data-tab="recuperar-formato" onclick="switchTab('recuperar-formato')">Recupear_Formato</button>
+                <button class="tab-btn" data-tab="recuperar-formato" onclick="switchTab('recuperar-formato')">Recuperar formato</button>
+                <button class="tab-btn tab-btn-guide" data-tab="guia-usuario" onclick="switchTab('guia-usuario')">📘 Guía del usuario</button>
             </div>
         </aside>
 
@@ -1322,6 +1323,79 @@
                     <button onclick="changeTTSPodcastPage(1)">⏭️</button>
                 </div>
             </div>
+
+            <!-- GUÍA DEL USUARIO TAB (contenido generado por JS/tabs/user-guide.js) -->
+            <div id="guia-usuario" class="tab-content">
+                <header class="guide-hero">
+                    <h2>📘 Guía del usuario</h2>
+                    <p>Herramientas para trabajar PDF <strong>en su navegador</strong>: los archivos no se suben a ningún servidor.
+                        Escriba lo que quiere hacer y pulse <kbd>Enter</kbd>, o elija una categoría, para ver qué hace cada herramienta y cómo se usa.</p>
+                    <div class="guide-search-wrap">
+                        <span aria-hidden="true">🔍</span>
+                        <input type="search" id="guideSearch" placeholder="¿Qué quiere hacer? Ej.: unir, firmar, contraseña, traducir, video…" autocomplete="off" aria-label="Buscar herramienta">
+                    </div>
+                    <div id="guideCatNav" class="guide-cat-nav" role="toolbar" aria-label="Filtrar por categoría"></div>
+                    <small id="guideCount" class="guide-count"></small>
+                    <div id="guideCatInfo" class="guide-cat-info" aria-live="polite" style="display:none;"></div>
+                </header>
+
+                <section class="guide-section">
+                    <h3 class="guide-section-title">⚡ Empezar en 3 pasos</h3>
+                    <div class="guide-quick">
+                        <div class="guide-quick-item"><span>1</span><div><b>Elija la herramienta</b> en el menú lateral o en esta guía.</div></div>
+                        <div class="guide-quick-item"><span>2</span><div><b>Cargue el PDF</b> con el botón 📂 o <b>arrástrelo</b> sobre la ventana.</div></div>
+                        <div class="guide-quick-item"><span>3</span><div><b>Pulse el botón principal</b> y descargue el resultado en el enlace verde «¡Éxito!».</div></div>
+                    </div>
+                </section>
+
+                <section class="guide-section">
+                    <h3 class="guide-section-title">🧭 Ir directo a…</h3>
+                    <p class="guide-section-sub">Haga clic en una herramienta para ver qué es, qué hace y cómo sacarle el mejor provecho.</p>
+                    <div id="guideIndex" class="guide-index"></div>
+                </section>
+
+                <section class="guide-section" id="guideToolsSection">
+                    <h3 class="guide-section-title">🧰 Herramientas: qué hacen y cómo se usan</h3>
+                    <div id="guideTools"></div>
+                    <p id="guideEmpty" class="guide-empty" style="display:none;">No se encontró ninguna herramienta. Pruebe con otra palabra (por ejemplo «páginas», «audio» o «idioma»).</p>
+                </section>
+
+                <section class="guide-section">
+                    <h3 class="guide-section-title">🔗 Flujos de trabajo recomendados</h3>
+                    <p class="guide-section-sub">Combinaciones de pestañas para tareas frecuentes. Haga clic en cada paso para abrirlo.</p>
+                    <div id="guideFlows" class="guide-flows"></div>
+                </section>
+
+                <section class="guide-section">
+                    <h3 class="guide-section-title">🛠️ Problemas frecuentes</h3>
+                    <div id="guideFaq" class="guide-faq"></div>
+                </section>
+
+                <section class="guide-section guide-two-col">
+                    <div>
+                        <h3 class="guide-section-title">⌨️ Atajos</h3>
+                        <ul class="guide-keys">
+                            <li><kbd>F1</kbd> o botón <b>❓</b> — explicación de la pestaña abierta (en la guía, enfoca el buscador)</li>
+                            <li><b>ℹ️ Cómo usarla</b> — al inicio de cada pestaña, abre su explicación</li>
+                            <li><b>Arrastrar y soltar</b> — carga el PDF en la pestaña abierta</li>
+                            <li><kbd>Ctrl</kbd>+<kbd>V</kbd> — pegar un PDF en Intercalar o una firma en Recuperar formato</li>
+                            <li><kbd>Espacio</kbd> / <kbd>←</kbd> <kbd>→</kbd> — reproducir y navegar en Lector Vocabulario</li>
+                            <li><kbd>Esc</kbd> — cerrar el visor ampliado</li>
+                            <li><b>🌙 / ☀️</b> (abajo a la derecha) — modo oscuro</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="guide-section-title">ℹ️ Bueno saber</h3>
+                        <ul class="guide-keys">
+                            <li>Los PDF se procesan <b>en su equipo</b>; nada se guarda en un servidor.</li>
+                            <li>Se necesita <b>internet</b> para cargar las librerías, traducir y generar voz.</li>
+                            <li>«Modo Compatibilidad» convierte las páginas en imagen: el texto deja de ser seleccionable.</li>
+                            <li>Guarde con un nombre nuevo para no sobrescribir el original.</li>
+                            <li>Enlace directo a una herramienta: agregue <code>#id</code> a la dirección, por ejemplo <code>index.html#interleave</code>.</li>
+                        </ul>
+                    </div>
+                </section>
+            </div>
         </main>
     </div>
 
@@ -1478,6 +1552,7 @@
     <script src="JS/tabs/manim-narrator.js" defer></script>
     <script src="JS/tabs/vocab-reader.js" defer></script>
     <script src="JS/tabs/recover-format.js?v=20261105b" defer></script>
+    <script src="JS/tabs/user-guide.js?v=20261125d" defer></script>
 
     <!-- Toast Container -->
     <div id="toastContainer"></div>
@@ -1487,6 +1562,17 @@
 
     <!-- Dark Mode Toggle -->
     <button id="darkModeToggle" class="dark-mode-toggle" title="Cambiar tema">🌙</button>
+
+    <!-- Ayuda de la pestaña abierta / Guía del usuario (F1) -->
+    <button id="guideFab" class="guide-fab" title="¿Qué hace esta pestaña? (F1)" aria-label="Ver la explicación de esta pestaña">❓</button>
+
+    <!-- Panel de ayuda: qué es, qué hace y cómo usar una herramienta (JS/tabs/user-guide.js) -->
+    <div id="guideHelp" class="guide-help-backdrop" style="display:none;">
+        <div class="guide-help-box" role="dialog" aria-modal="true" aria-labelledby="guideHelpTitle">
+            <button type="button" class="guide-help-close" data-help-close aria-label="Cerrar (Esc)" title="Cerrar (Esc)">✕</button>
+            <div id="guideHelpBody"></div>
+        </div>
+    </div>
 
     <!-- ============================================================
          Vocab PDF Modal Viewer

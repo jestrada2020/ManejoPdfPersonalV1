@@ -1,5 +1,5 @@
 // ==========================================
-// Recupear_Formato: edita título, fecha y enunciados de un PDF conservando su
+// Recuperar formato: edita título, fecha y enunciados de un PDF conservando su
 // formato, y añade notas u observaciones. Las páginas que no se tocan quedan intactas.
 //
 // Coordenadas: todo se maneja en "puntos de vista" (origen arriba-izquierda, y hacia
@@ -333,7 +333,7 @@
             content = readPageContent(doc, pdfPage.node);
             parsed = parseContent(content);
         } catch (e) {
-            console.warn('Recupear_Formato: no se pudo leer el contenido de la página', num, e);
+            console.warn('Recuperar formato: no se pudo leer el contenido de la página', num, e);
             content = null;
         }
         const toView = (x, y) => vp.convertToViewportPoint(x, y);

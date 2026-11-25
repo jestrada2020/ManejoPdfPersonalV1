@@ -15,7 +15,7 @@ Aplicación web completa para manipular archivos PDF directamente en el navegado
 ### Visualización y Anotación
 - **Anotar / Revisar**: Resalta, subraya, tacha, dibuja flechas, añade notas y texto.
 - **Añadir Videos / Audio**: Inserta enlaces de YouTube, audio y enlaces web como anotaciones clickeables.
-- **Recupear_Formato**: Cambia título, fecha y enunciados conservando fuente, negrita, alineación e imágenes; agrega notas u observaciones y cubre zonas (por ejemplo, texto dentro de una imagen). El texto anterior se borra del archivo y la pestaña avisa si el texto nuevo pisa otro contenido. Con **🖋️ Imagen / firma** se inserta una imagen o firma digital (archivo o Ctrl+V), con opción de quitar el fondo blanco; se arrastra para moverla y se cambia su tamaño desde la esquina. Con **✍️ Dibujar firma** se firma con el mouse, el dedo o un lápiz digital (color, grosor, deshacer) y la firma se inserta con fondo transparente.
+- **Recuperar formato**: Cambia título, fecha y enunciados conservando fuente, negrita, alineación e imágenes; agrega notas u observaciones y cubre zonas (por ejemplo, texto dentro de una imagen). El texto anterior se borra del archivo y la pestaña avisa si el texto nuevo pisa otro contenido. Con **🖋️ Imagen / firma** se inserta una imagen o firma digital (archivo o Ctrl+V), con opción de quitar el fondo blanco; se arrastra para moverla y se cambia su tamaño desde la esquina. Con **✍️ Dibujar firma** se firma con el mouse, el dedo o un lápiz digital (color, grosor, deshacer) y la firma se inserta con fondo transparente.
 
 ### Traducción y Lectura
 - **Traductor / Lector**: Visualizador de PDF con traducción por selección y lectura TTS (Text-to-Speech) del navegador.
@@ -47,6 +47,9 @@ Nueva funcionalidad que integra el pipeline de **[manim-narracion](skills/manim-
 - **Selector de narrador** (por defecto **Jorge, México** — `es-MX-JorgeNeural`) con voces neuronales de México, EE. UU., Colombia, Argentina, Chile, Perú, España e inglés multilingüe; velocidad y tono ajustables y botón **Probar narrador**. La elección se recuerda y la usan también el Lector, el Traductor y el Lector Vocabulario.
 - **Narración natural**: quita encabezados/pies repetidos, números de página e índices; une palabras cortadas con guion y líneas en párrafos reales; expande abreviaturas (Dr., p. ej., %, °C…); quita URLs y citas [12]; las escenas se cortan entre frases.
 - `generar_audio.sh` crea el MP3 y los subtítulos `.srt` de cada escena (requiere `edge-tts` ≥ 7.3: `pip install -U edge-tts`).
+
+### 📘 Guía del usuario
+Pestaña final con un buscador («¿Qué quiere hacer?», Enter abre la herramienta), filtros por categoría, tarjetas con qué hace cada herramienta y sus pasos, flujos de trabajo recomendados, problemas frecuentes y atajos. Se abre desde cualquier pestaña con **F1** o el botón **❓**. Cada herramienta tiene enlace directo: `index.html#interleave`, `index.html#unlock`, etc.
 
 ## 🛠️ Tecnologías
 
@@ -101,7 +104,8 @@ La aplicación soporta **modo oscuro** (toggle en la esquina inferior derecha). 
 │       ├── podcast.js
 │       ├── tts-podcast.js
 │       ├── manim-narrator.js    # Generador de proyectos Manim
-│       └── recover-format.js    # Recupear_Formato: editar texto conservando el formato
+│       ├── recover-format.js    # Recuperar formato: editar texto conservando el formato
+│       └── user-guide.js        # Guía del usuario (buscador, flujos, enlaces directos)
 ```
 
 ## 📄 Licencia
